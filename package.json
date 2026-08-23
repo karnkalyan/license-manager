@@ -1,0 +1,23 @@
+{
+  "name": "secure-license-manager",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "sdk/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,admin \"npm run dev -w @license/server\" \"npm run dev -w @license/admin\"",
+    "build": "npm run build -w @license/server && npm run build -w @license/admin && npm run build -w @license/node-sdk",
+    "start": "npm run start -w @license/server",
+    "db:generate": "npm run prisma:generate -w @license/server",
+    "db:migrate": "npm run prisma:migrate -w @license/server",
+    "db:deploy": "npm exec -w @license/server -- prisma migrate deploy",
+    "db:seed": "npm run prisma:seed -w @license/server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

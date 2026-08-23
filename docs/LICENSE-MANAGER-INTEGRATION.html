@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="dcterms.date" content="2026-08-21" />
+  <title>Secure License Manager - Complete Integration &amp; Operations Manual</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style>
+  :root{--ink:#172033;--muted:#64748b;--line:#d9e2ec;--panel:#f7f9fc;--accent:#4f46e5;--good:#047857;--warn:#b45309}
+  *{box-sizing:border-box}html{font-size:14px}body{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;max-width:980px;margin:0 auto;padding:38px 46px 70px;color:var(--ink);line-height:1.6;background:#fff}h1{font-size:24px;line-height:1.22;margin:30px 0 12px;letter-spacing:-.02em}h2{font-size:17px;margin:27px 0 9px;border-bottom:1px solid var(--line);padding-bottom:6px}h3{font-size:14px;margin:22px 0 7px}h4{font-size:13px;margin:18px 0 6px}p,li{font-size:12.5px}a{color:var(--accent);text-decoration:none}blockquote{margin:14px 0;padding:10px 14px;border-left:3px solid var(--accent);background:#f5f6ff;color:#39445a;border-radius:0 8px 8px 0}blockquote p{margin:2px 0}code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:10.5px;background:#f1f5f9;padding:1px 4px;border-radius:4px}pre{background:#111827;color:#e5e7eb;padding:13px 15px;border-radius:9px;overflow:auto;border:1px solid #1f2937;line-height:1.48}pre code{background:transparent;color:inherit;padding:0;font-size:10px}table{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:11px}th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{background:var(--panel);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#475569}ul,ol{padding-left:20px}hr{border:0;border-top:1px solid var(--line);margin:26px 0}#TOC{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:20px 0 28px}#TOC ul{margin:4px 0}#TOC a{font-size:11.5px}.title{font-size:26px;margin-bottom:5px}.subtitle{font-size:14px;color:var(--muted);font-weight:500;margin-top:0}.date{font-size:11px;color:var(--muted)}.section-break{height:1px}.section-break+ h1{margin-top:34px}.sourceCode{break-inside:avoid}.header-section-number{color:var(--accent)}
+  @media print{@page{size:A4;margin:15mm 14mm 17mm}body{max-width:none;padding:0;font-size:11pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:20px;break-after:avoid}h2{font-size:15px;break-after:avoid}h3{font-size:12.5px;break-after:avoid}p,li{font-size:10.2px}pre{white-space:pre-wrap;word-break:break-word;overflow:visible}pre code{font-size:8.3px}.section-break{break-before:page}.section-break:first-of-type{break-before:auto}table,blockquote,pre{break-inside:avoid}#TOC{break-after:page}a{color:inherit}}
+  @media (max-width:700px){body{padding:22px 18px}h1{font-size:21px}.title{font-size:22px}pre{padding:11px;white-space:pre-wrap}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Secure License Manager - Complete Integration &amp;
+Operations Manual</h1>
+<p class="subtitle">Multi-tenant, application-isolated, module-aware
+online licensing</p>
+<p class="date">2026-08-21</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#integration-guide" id="toc-integration-guide"><span
+class="toc-section-number">1</span> Integration guide</a>
+<ul>
+<li><a href="#what-the-application-integrates"
+id="toc-what-the-application-integrates"><span
+class="toc-section-number">1.1</span> 1. What the application
+integrates</a></li>
+<li><a href="#namespace-model" id="toc-namespace-model"><span
+class="toc-section-number">1.2</span> 2. Namespace model</a></li>
+<li><a href="#generate-the-application-scoped-hwid"
+id="toc-generate-the-application-scoped-hwid"><span
+class="toc-section-number">1.3</span> 3. Generate the application-scoped
+HWID</a></li>
+<li><a href="#create-a-persistent-installation-id"
+id="toc-create-a-persistent-installation-id"><span
+class="toc-section-number">1.4</span> 4. Create a persistent
+installation ID</a></li>
+<li><a href="#create-the-reusable-client-system"
+id="toc-create-the-reusable-client-system"><span
+class="toc-section-number">1.5</span> 5. Create the reusable client
+system</a></li>
+<li><a href="#gate-application-modules"
+id="toc-gate-application-modules"><span
+class="toc-section-number">1.6</span> 6. Gate application
+modules</a></li>
+<li><a href="#read-all-licensed-modules"
+id="toc-read-all-licensed-modules"><span
+class="toc-section-number">1.7</span> 7. Read all licensed
+modules</a></li>
+<li><a href="#refresh-modules-at-runtime"
+id="toc-refresh-modules-at-runtime"><span
+class="toc-section-number">1.8</span> 8. Refresh modules at
+runtime</a></li>
+<li><a href="#module-changes" id="toc-module-changes"><span
+class="toc-section-number">1.9</span> 9. Module changes</a></li>
+<li><a href="#banrevoke-behavior" id="toc-banrevoke-behavior"><span
+class="toc-section-number">1.10</span> 10. Ban/revoke behavior</a></li>
+<li><a href="#generic-implementation-contract-for-other-languages"
+id="toc-generic-implementation-contract-for-other-languages"><span
+class="toc-section-number">1.11</span> 11. Generic implementation
+contract for other languages</a></li>
+<li><a href="#serveradmin-provisioning-flow"
+id="toc-serveradmin-provisioning-flow"><span
+class="toc-section-number">1.12</span> 12. Server/admin provisioning
+flow</a></li>
+<li><a href="#recommended-secure-key-storage"
+id="toc-recommended-secure-key-storage"><span
+class="toc-section-number">1.13</span> 13. Recommended secure key
+storage</a></li>
+<li><a href="#production-checklist" id="toc-production-checklist"><span
+class="toc-section-number">1.14</span> 14. Production checklist</a></li>
+</ul></li>
+<li><a href="#hwid-specification" id="toc-hwid-specification"><span
+class="toc-section-number">2</span> HWID specification</a>
+<ul>
+<li><a href="#security-objective" id="toc-security-objective"><span
+class="toc-section-number">2.1</span> Security objective</a></li>
+<li><a href="#canonical-algorithm" id="toc-canonical-algorithm"><span
+class="toc-section-number">2.2</span> Canonical algorithm</a></li>
+<li><a href="#stable-os-machine-component"
+id="toc-stable-os-machine-component"><span
+class="toc-section-number">2.3</span> Stable OS machine
+component</a></li>
+<li><a href="#node.js-sdk" id="toc-node.js-sdk"><span
+class="toc-section-number">2.4</span> Node.js SDK</a></li>
+<li><a href="#c-derivation" id="toc-c-derivation"><span
+class="toc-section-number">2.5</span> C# derivation</a></li>
+<li><a href="#python-derivation" id="toc-python-derivation"><span
+class="toc-section-number">2.6</span> Python derivation</a></li>
+<li><a href="#installation-id" id="toc-installation-id"><span
+class="toc-section-number">2.7</span> Installation ID</a></li>
+</ul></li>
+<li><a href="#tcp-protocol" id="toc-tcp-protocol"><span
+class="toc-section-number">3</span> TCP protocol</a>
+<ul>
+<li><a href="#hello" id="toc-hello"><span
+class="toc-section-number">3.1</span> HELLO</a></li>
+<li><a href="#welcome" id="toc-welcome"><span
+class="toc-section-number">3.2</span> WELCOME</a></li>
+<li><a href="#heartbeat" id="toc-heartbeat"><span
+class="toc-section-number">3.3</span> HEARTBEAT</a></li>
+<li><a href="#entitlements_request" id="toc-entitlements_request"><span
+class="toc-section-number">3.4</span> ENTITLEMENTS_REQUEST</a></li>
+<li><a href="#license_event" id="toc-license_event"><span
+class="toc-section-number">3.5</span> LICENSE_EVENT</a></li>
+<li><a href="#module-changes-and-key-reissue"
+id="toc-module-changes-and-key-reissue"><span
+class="toc-section-number">3.6</span> Module changes and key
+reissue</a></li>
+</ul></li>
+<li><a href="#admin-rest-api" id="toc-admin-rest-api"><span
+class="toc-section-number">4</span> Admin REST API</a>
+<ul>
+<li><a href="#authentication" id="toc-authentication"><span
+class="toc-section-number">4.1</span> Authentication</a></li>
+<li><a href="#vendors-tenants" id="toc-vendors-tenants"><span
+class="toc-section-number">4.2</span> Vendors / tenants</a></li>
+<li><a href="#applications" id="toc-applications"><span
+class="toc-section-number">4.3</span> Applications</a></li>
+<li><a href="#modules" id="toc-modules"><span
+class="toc-section-number">4.4</span> Modules</a></li>
+<li><a href="#licenses" id="toc-licenses"><span
+class="toc-section-number">4.5</span> Licenses</a></li>
+<li><a href="#clients" id="toc-clients"><span
+class="toc-section-number">4.6</span> Clients</a></li>
+<li><a href="#dashboard-and-audit" id="toc-dashboard-and-audit"><span
+class="toc-section-number">4.7</span> Dashboard and audit</a></li>
+</ul></li>
+<li><a href="#architecture" id="toc-architecture"><span
+class="toc-section-number">5</span> Architecture</a>
+<ul>
+<li><a href="#security-boundaries" id="toc-security-boundaries"><span
+class="toc-section-number">5.1</span> Security boundaries</a></li>
+<li><a href="#components" id="toc-components"><span
+class="toc-section-number">5.2</span> Components</a></li>
+<li><a href="#license-jwt-v2" id="toc-license-jwt-v2"><span
+class="toc-section-number">5.3</span> License JWT v2</a></li>
+<li><a href="#multi-tenant-isolation-rules"
+id="toc-multi-tenant-isolation-rules"><span
+class="toc-section-number">5.4</span> Multi-tenant isolation
+rules</a></li>
+<li><a href="#modules-1" id="toc-modules-1"><span
+class="toc-section-number">5.5</span> Modules</a></li>
+<li><a href="#horizontal-scaling" id="toc-horizontal-scaling"><span
+class="toc-section-number">5.6</span> Horizontal scaling</a></li>
+</ul></li>
+<li><a href="#security-model" id="toc-security-model"><span
+class="toc-section-number">6</span> Security model</a>
+<ul>
+<li><a href="#implemented-controls" id="toc-implemented-controls"><span
+class="toc-section-number">6.1</span> Implemented controls</a></li>
+<li><a href="#critical-integration-rules"
+id="toc-critical-integration-rules"><span
+class="toc-section-number">6.2</span> Critical integration
+rules</a></li>
+<li><a href="#production-requirements"
+id="toc-production-requirements"><span
+class="toc-section-number">6.3</span> Production requirements</a></li>
+</ul></li>
+</ul>
+</nav>
+<blockquote>
+<p><strong>Protocol:</strong> Omni License Protocol v2<br />
+<strong>Stack:</strong> React + Node.js/TypeScript + Prisma ORM +
+PostgreSQL<br />
+<strong>Security:</strong> Ed25519 JWT, TLS 1.3/mTLS, application-scoped
+HWID, signed runtime entitlements</p>
+</blockquote>
+<p>This manual is generated with the project and is intended for
+application developers, integrators, operators, and security reviewers.
+Public tenant/application UUIDs may be embedded in clients; server
+private signing keys and secrets must never be distributed.</p>
+<div class="section-break">
+
+</div>
+<h1 data-number="1" id="integration-guide"><span
+class="header-section-number">1</span> Integration guide</h1>
+<h2 data-number="1.1" id="what-the-application-integrates"><span
+class="header-section-number">1.1</span> 1. What the application
+integrates</h2>
+<p>Every licensed application embeds only public configuration and
+client credentials:</p>
+<ul>
+<li>License server hostname/port.</li>
+<li>Vendor/tenant public UUID.</li>
+<li>Application public UUID.</li>
+<li>Ed25519 public license verification key.</li>
+<li>TLS CA trust anchor.</li>
+<li>Preferably a unique mTLS client certificate/key provisioned for that
+installation.</li>
+<li>The user’s JWT license key, stored using OS-protected application
+storage when available.</li>
+</ul>
+<p>Never embed the Ed25519 private signing key, HWID pepper, admin JWT
+secret, database password, CA private key, or admin credentials.</p>
+<h2 data-number="1.2" id="namespace-model"><span
+class="header-section-number">1.2</span> 2. Namespace model</h2>
+<pre class="text"><code>Tenant/Vendor A (UUID A)
+  Application Desktop (UUID A1)
+    CORE
+    REPORTING
+  Application Agent (UUID A2)
+    CORE
+
+Tenant/Vendor B (UUID B)
+  Application Desktop (UUID B1)
+    CORE
+    REPORTING</code></pre>
+<p>Even when Vendor A and Vendor B sell applications with the same
+name/code, their tenant/application UUIDs are different. The client
+HWID, license JWT claims, database relationships, activation binding and
+signed events all include the namespace.</p>
+<h2 data-number="1.3" id="generate-the-application-scoped-hwid"><span
+class="header-section-number">1.3</span> 3. Generate the
+application-scoped HWID</h2>
+<p>Use the SDK rather than a global HWID:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> hwid <span class="op">=</span> <span class="cf">await</span> <span class="fu">generateHwid</span>({ tenantId<span class="op">:</span> TENANT_ID<span class="op">,</span> applicationId<span class="op">:</span> APPLICATION_ID })<span class="op">;</span></span></code></pre></div>
+<p>On the same physical machine, <code>A/A1</code>, <code>A/A2</code>,
+and <code>B/B1</code> intentionally produce three different 64-character
+HWIDs.</p>
+<h2 data-number="1.4" id="create-a-persistent-installation-id"><span
+class="header-section-number">1.4</span> 4. Create a persistent
+installation ID</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> clientId <span class="op">=</span> <span class="cf">await</span> <span class="fu">loadOrCreateScopedClientId</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">join</span>(<span class="fu">homedir</span>()<span class="op">,</span> <span class="st">&#39;.my-product&#39;</span>)<span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  TENANT_ID<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  APPLICATION_ID</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">;</span></span></code></pre></div>
+<p>Persist this random UUID. Do not derive it from hardware.</p>
+<h2 data-number="1.5" id="create-the-reusable-client-system"><span
+class="header-section-number">1.5</span> 5. Create the reusable client
+system</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { LicenseSystem<span class="op">,</span> loadOrCreateScopedClientId } <span class="im">from</span> <span class="st">&#39;@license/node-sdk&#39;</span><span class="op">;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> license <span class="op">=</span> <span class="kw">new</span> <span class="fu">LicenseSystem</span>({</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  host<span class="op">:</span> <span class="st">&#39;license.example.com&#39;</span><span class="op">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  port<span class="op">:</span> <span class="dv">7443</span><span class="op">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  tenantId<span class="op">:</span> TENANT_ID<span class="op">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  applicationId<span class="op">:</span> APPLICATION_ID<span class="op">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  clientId<span class="op">,</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  licenseKey<span class="op">:</span> <span class="fu">readLicenseFromSecureStorage</span>()<span class="op">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  caPath<span class="op">:</span> <span class="st">&#39;./license-ca.pem&#39;</span><span class="op">,</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  certPath<span class="op">:</span> <span class="st">&#39;./client-cert.pem&#39;</span><span class="op">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  keyPath<span class="op">:</span> <span class="st">&#39;./client-key.pem&#39;</span><span class="op">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  publicLicenseKeyPath<span class="op">:</span> <span class="st">&#39;./license-ed25519-public.pem&#39;</span><span class="op">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  expectedIssuer<span class="op">:</span> <span class="st">&#39;secure-license-manager&#39;</span><span class="op">,</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  expectedAudience<span class="op">:</span> <span class="st">&#39;licensed-app&#39;</span><span class="op">,</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  appVersion<span class="op">:</span> APP_VERSION<span class="op">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  platform<span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">platform</span><span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">onEntitlementsChanged</span>(snapshot) {</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">applyFeatureState</span>(snapshot<span class="op">.</span><span class="at">modules</span>)<span class="op">;</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">onStateChange</span>(<span class="bu">event</span><span class="op">,</span> reason) {</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> ([<span class="st">&#39;LICENSE_REVOKED&#39;</span><span class="op">,</span><span class="st">&#39;LICENSE_SUSPENDED&#39;</span><span class="op">,</span><span class="st">&#39;LICENSE_EXPIRED&#39;</span><span class="op">,</span><span class="st">&#39;CLIENT_BANNED&#39;</span><span class="op">,</span><span class="st">&#39;TENANT_SUSPENDED&#39;</span>]<span class="op">.</span><span class="fu">includes</span>(<span class="bu">event</span>)) {</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">disableLicensedFeatures</span>(reason)<span class="op">;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="bu">event</span> <span class="op">===</span> <span class="st">&#39;LICENSE_KEY_REISSUED&#39;</span>) {</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>      <span class="fu">showReplacementKeyRequiredMessage</span>()<span class="op">;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">onConnectionLost</span>(error) {</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Always-online policy: fail closed after validation timeout.</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">disableLicensedFeatures</span>(error<span class="op">.</span><span class="at">message</span>)<span class="op">;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> entitlements <span class="op">=</span> <span class="cf">await</span> license<span class="op">.</span><span class="fu">connect</span>()<span class="op">;</span></span></code></pre></div>
+<p><code>connect()</code> returns only after TLS authentication,
+JWT/database validation, namespace checks, activation/HWID checks, and
+module entitlement retrieval succeed.</p>
+<h2 data-number="1.6" id="gate-application-modules"><span
+class="header-section-number">1.6</span> 6. Gate application
+modules</h2>
+<p>Do not parse the JWT in business logic. Use the validated
+session:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (license<span class="op">.</span><span class="fu">hasModule</span>(<span class="st">&#39;REPORTING&#39;</span>)) {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">showReportingMenu</span>()<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>license<span class="op">.</span><span class="fu">requireModule</span>(<span class="st">&#39;EXPORT_PDF&#39;</span>)<span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">performPdfExport</span>()<span class="op">;</span></span></code></pre></div>
+<p>Use <code>requireModule()</code> again at sensitive execution
+boundaries, not only at menu rendering.</p>
+<h2 data-number="1.7" id="read-all-licensed-modules"><span
+class="header-section-number">1.7</span> 7. Read all licensed
+modules</h2>
+<p>For security, the server never authorizes or reveals a customer
+entitlement from HWID alone. The application sends its app-scoped HWID
+as one binding signal, but the module list is returned only after the
+JWT key, tenant/application namespace, database state, activation policy
+and TLS identity all validate.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> modules <span class="op">=</span> license<span class="op">.</span><span class="fu">getModules</span>()<span class="op">;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> snapshot <span class="op">=</span> license<span class="op">.</span><span class="fu">getEntitlements</span>()<span class="op">;</span></span></code></pre></div>
+<p>A snapshot includes tenant ID, application ID, license ID, modules,
+entitlement version and validation timestamp.</p>
+<h2 data-number="1.8" id="refresh-modules-at-runtime"><span
+class="header-section-number">1.8</span> 8. Refresh modules at
+runtime</h2>
+<div class="sourceCode" id="cb7"><pre class="sourceCode ts"><code class="sourceCode typescript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> fresh <span class="op">=</span> <span class="cf">await</span> license<span class="op">.</span><span class="fu">refreshEntitlements</span>()<span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(fresh<span class="op">.</span><span class="at">modules</span>)<span class="op">;</span></span></code></pre></div>
+<p>The server returns an Ed25519-signed entitlement snapshot through the
+existing TCP channel. The SDK checks scope, sequence, expiration and
+signed module contents before replacing its cache.</p>
+<h2 data-number="1.9" id="module-changes"><span
+class="header-section-number">1.9</span> 9. Module changes</h2>
+<p>An administrator can change a license’s selected modules. The manager
+increments <code>entitlementVersion</code>, reissues the license JWT,
+invalidates the old token hash for future connections, and pushes
+<code>LICENSE_KEY_REISSUED</code> to live activations.</p>
+<p>Call <code>license.setLicenseKey(replacementJwt)</code> after
+securely receiving the new key, persist it, then reconnect when
+appropriate.</p>
+<h2 data-number="1.10" id="banrevoke-behavior"><span
+class="header-section-number">1.10</span> 10. Ban/revoke behavior</h2>
+<ul>
+<li><strong>Client ban</strong>: blocks one installation/client
+UUID.</li>
+<li><strong>License revoke/suspend</strong>: blocks every activation
+using that license.</li>
+<li><strong>Tenant suspend</strong>: blocks every application/license
+below the tenant.</li>
+<li><strong>Expiry</strong>: blocks the license after
+<code>expiresAt</code>.</li>
+</ul>
+<p>The database is changed first; push notification is only the fast
+path. Offline clients are rejected on reconnect.</p>
+<h2 data-number="1.11"
+id="generic-implementation-contract-for-other-languages"><span
+class="header-section-number">1.11</span> 11. Generic implementation
+contract for other languages</h2>
+<p>A client in any language must implement this interface:</p>
+<pre class="text"><code>LicenseSystem.connect() -&gt; EntitlementSnapshot
+LicenseSystem.close()
+LicenseSystem.isLicensed() -&gt; bool
+LicenseSystem.getModules() -&gt; string[]
+LicenseSystem.hasModule(code) -&gt; bool
+LicenseSystem.requireModule(code) -&gt; throws/denies
+LicenseSystem.refreshEntitlements() -&gt; EntitlementSnapshot
+LicenseSystem.setLicenseKey(reissuedJwt)</code></pre>
+<p>Required internals:</p>
+<ol type="1">
+<li>TLS 1.3 server certificate validation; mTLS client certificate in
+production.</li>
+<li>Application-scoped HWID v2 algorithm from
+<code>HWID-INTEGRATION.md</code>.</li>
+<li>Persistent random installation UUID.</li>
+<li>NDJSON protocol v2 HELLO/HEARTBEAT/ENTITLEMENTS_REQUEST.</li>
+<li>Ed25519 verification of state/entitlement JWTs with exact
+issuer/audience.</li>
+<li>Verify signed client ID, tenant UUID, application UUID, license ID,
+event, expiration and monotonic sequence.</li>
+<li>Fail closed when heartbeat acknowledgements exceed the allowed
+validation timeout.</li>
+<li>Never implement an arbitrary remote command handler.</li>
+</ol>
+<h2 data-number="1.12" id="serveradmin-provisioning-flow"><span
+class="header-section-number">1.12</span> 12. Server/admin provisioning
+flow</h2>
+<ol type="1">
+<li>Create Vendor/Tenant.</li>
+<li>Copy its public tenant UUID.</li>
+<li>Create Application inside that tenant.</li>
+<li>Copy its public application UUID.</li>
+<li>Add application Modules.</li>
+<li>Generate License, selecting only authorized modules.</li>
+<li>Deliver the one-time JWT to the customer’s application
+securely.</li>
+<li>Application generates scoped HWID and persistent client UUID, then
+connects.</li>
+<li>Admin monitors activation, heartbeat and audit logs; ban/revoke if
+necessary.</li>
+</ol>
+<h2 data-number="1.13" id="recommended-secure-key-storage"><span
+class="header-section-number">1.13</span> 13. Recommended secure key
+storage</h2>
+<ul>
+<li>Windows: DPAPI / Credential Manager.</li>
+<li>macOS: Keychain.</li>
+<li>Linux desktop: Secret Service/libsecret where available; otherwise a
+root/user-protected file with restrictive permissions and disk
+encryption.</li>
+<li>Containers/services: secrets manager or orchestrator secret
+mount.</li>
+</ul>
+<p>Never put the license JWT in command-line arguments, crash dumps,
+telemetry, analytics, URL query strings, or normal logs.</p>
+<h2 data-number="1.14" id="production-checklist"><span
+class="header-section-number">1.14</span> 14. Production checklist</h2>
+<p>Use unique production secrets/certificates; enforce mTLS; protect
+signing keys with KMS/HSM; deploy admin HTTPS + SSO/MFA; use PostgreSQL
+TLS/least privilege/backups; add handshake rate limits; export audit
+logs to SIEM; add pub/sub before scaling TCP nodes; test
+ban/revoke/expiry/network-loss scenarios; fuzz the protocol; and perform
+independent security testing.</p>
+<div class="section-break">
+
+</div>
+<h1 data-number="2" id="hwid-specification"><span
+class="header-section-number">2</span> HWID specification</h1>
+<h2 data-number="2.1" id="security-objective"><span
+class="header-section-number">2.1</span> Security objective</h2>
+<p>The hardware identifier is a <strong>binding signal</strong>, not a
+password. Raw motherboard UUIDs, machine IDs, serial numbers, MAC
+addresses, and other hardware identifiers must never be sent to the
+License Manager.</p>
+<p>Protocol v2 deliberately scopes the client HWID to both the
+<strong>vendor/tenant UUID</strong> and the <strong>application
+UUID</strong>. Therefore:</p>
+<ul>
+<li>same machine + same vendor + same application =&gt; stable same
+HWID;</li>
+<li>same machine + different application =&gt; different HWID;</li>
+<li>same machine + same application name/code under another vendor =&gt;
+different HWID;</li>
+<li>PostgreSQL stores neither the raw machine identifier nor the
+client-scoped HWID.</li>
+</ul>
+<h2 data-number="2.2" id="canonical-algorithm"><span
+class="header-section-number">2.2</span> Canonical algorithm</h2>
+<p>First create an internal base fingerprint that is never
+transmitted:</p>
+<pre class="text"><code>components = [stable_os_machine_id, platform, cpu_arch]
+canonical = SORT(LOWERCASE(TRIM(components))).JOIN(&quot;|&quot;)
+base_hardware_fingerprint = HEX(SHA256(&quot;lm-base-hwid-v2|&quot; + canonical))</code></pre>
+<p>Then derive the application-scoped value:</p>
+<pre class="text"><code>app_hwid = HEX(SHA256(
+  &quot;lm-app-hwid-v2|&quot; +
+  LOWERCASE(tenant_public_uuid) + &quot;|&quot; +
+  LOWERCASE(application_public_uuid) + &quot;|&quot; +
+  base_hardware_fingerprint
+))</code></pre>
+<p>Only <code>app_hwid</code> is transmitted.</p>
+<p>The server applies a second, secret HMAC layer before storage:</p>
+<pre class="text"><code>stored_hwid = HEX(HMAC_SHA256(
+  HWID_PEPPER,
+  &quot;lm-server-hwid-v2|&quot; + license_id + &quot;|&quot; + app_hwid
+))</code></pre>
+<p>This creates three privacy/security boundaries: raw machine
+identifiers remain local; different applications cannot correlate the
+same computer by HWID; and a database leak does not expose the
+client-scoped HWID.</p>
+<h2 data-number="2.3" id="stable-os-machine-component"><span
+class="header-section-number">2.3</span> Stable OS machine
+component</h2>
+<ul>
+<li>Windows: <code>Win32_ComputerSystemProduct.UUID</code></li>
+<li>Linux: <code>/etc/machine-id</code>, fallback
+<code>/var/lib/dbus/machine-id</code></li>
+<li>macOS: <code>IOPlatformUUID</code> from
+<code>IOPlatformExpertDevice</code></li>
+</ul>
+<p>Reject all-zero/all-<code>F</code> firmware placeholders. Do not use
+hostname or IP address as the primary identity.</p>
+<h2 data-number="2.4" id="node.js-sdk"><span
+class="header-section-number">2.4</span> Node.js SDK</h2>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode ts"><code class="sourceCode typescript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { generateHwid } <span class="im">from</span> <span class="st">&#39;@license/node-sdk&#39;</span><span class="op">;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> hwid <span class="op">=</span> <span class="cf">await</span> <span class="fu">generateHwid</span>({</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  tenantId<span class="op">:</span> <span class="st">&#39;tenant-public-uuid&#39;</span><span class="op">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  applicationId<span class="op">:</span> <span class="st">&#39;application-public-uuid&#39;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h2 data-number="2.5" id="c-derivation"><span
+class="header-section-number">2.5</span> C# derivation</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode csharp"><code class="sourceCode cs"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">static</span> <span class="dt">string</span> <span class="fu">Sha256Hex</span><span class="op">(</span><span class="dt">string</span> value<span class="op">)</span> <span class="op">=&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    Convert<span class="op">.</span><span class="fu">ToHexString</span><span class="op">(</span>SHA256<span class="op">.</span><span class="fu">HashData</span><span class="op">(</span>Encoding<span class="op">.</span><span class="fu">UTF8</span><span class="op">.</span><span class="fu">GetBytes</span><span class="op">(</span>value<span class="op">)))</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">ToLowerInvariant</span><span class="op">();</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> normalizedComponents <span class="op">=</span> components</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">Select</span><span class="op">(</span>x <span class="op">=&gt;</span> x<span class="op">.</span><span class="fu">Trim</span><span class="op">().</span><span class="fu">ToLowerInvariant</span><span class="op">())</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">OrderBy</span><span class="op">(</span>x <span class="op">=&gt;</span> x<span class="op">,</span> StringComparer<span class="op">.</span><span class="fu">Ordinal</span><span class="op">);</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> canonical <span class="op">=</span> <span class="dt">string</span><span class="op">.</span><span class="fu">Join</span><span class="op">(</span><span class="st">&quot;|&quot;</span><span class="op">,</span> normalizedComponents<span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> baseFingerprint <span class="op">=</span> <span class="fu">Sha256Hex</span><span class="op">(</span><span class="st">&quot;lm-base-hwid-v2|&quot;</span> <span class="op">+</span> canonical<span class="op">);</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="dt">var</span> appHwid <span class="op">=</span> <span class="fu">Sha256Hex</span><span class="op">(</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    $<span class="st">&quot;lm-app-hwid-v2|{tenantId.ToLowerInvariant()}|{applicationId.ToLowerInvariant()}|{baseFingerprint}&quot;</span><span class="op">);</span></span></code></pre></div>
+<h2 data-number="2.6" id="python-derivation"><span
+class="header-section-number">2.6</span> Python derivation</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sha256_hex(value: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> hashlib.sha256(value.encode(<span class="st">&quot;utf-8&quot;</span>)).hexdigest()</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>canonical <span class="op">=</span> <span class="st">&quot;|&quot;</span>.join(<span class="bu">sorted</span>(x.strip().lower() <span class="cf">for</span> x <span class="kw">in</span> components))</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>base_fingerprint <span class="op">=</span> sha256_hex(<span class="st">&quot;lm-base-hwid-v2|&quot;</span> <span class="op">+</span> canonical)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>app_hwid <span class="op">=</span> sha256_hex(</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f&quot;lm-app-hwid-v2|</span><span class="sc">{</span>tenant_id<span class="sc">.</span>lower()<span class="sc">}</span><span class="ss">|</span><span class="sc">{</span>application_id<span class="sc">.</span>lower()<span class="sc">}</span><span class="ss">|</span><span class="sc">{</span>base_fingerprint<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<h2 data-number="2.7" id="installation-id"><span
+class="header-section-number">2.7</span> Installation ID</h2>
+<p>The HWID and installation/client ID solve different problems. Each
+application installation must also persist a random UUID. The Node
+helper creates an application-scoped storage filename:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode ts"><code class="sourceCode typescript"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> clientId <span class="op">=</span> <span class="cf">await</span> <span class="fu">loadOrCreateScopedClientId</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  appDataDirectory<span class="op">,</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  TENANT_ID<span class="op">,</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  APPLICATION_ID</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>)<span class="op">;</span></span></code></pre></div>
+<p>Do not derive <code>clientId</code> from the HWID. A random persisted
+installation ID makes clone/reset workflows auditable and prevents one
+identifier from being overloaded for multiple security purposes.</p>
+<div class="section-break">
+
+</div>
+<h1 data-number="3" id="tcp-protocol"><span
+class="header-section-number">3</span> TCP protocol</h1>
+<p>Protocol v2 uses one bidirectional <strong>TLS 1.3</strong>
+connection per running licensed application instance. Production
+deployments should require mTLS. The channel performs activation,
+continuous online validation, entitlement retrieval, heartbeat, and
+signed server-to-client license-state events. It is intentionally
+<strong>not</strong> a remote shell or arbitrary command channel.</p>
+<p>Messages are UTF-8 newline-delimited JSON (NDJSON), maximum 64 KiB
+per frame.</p>
+<h2 data-number="3.1" id="hello"><span
+class="header-section-number">3.1</span> HELLO</h2>
+<p>Immediately after TLS authentication:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;HELLO&quot;</span><span class="fu">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;protocol&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;clientId&quot;</span><span class="fu">:</span> <span class="st">&quot;persistent-random-installation-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;licenseKey&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;JWT&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tenantId&quot;</span><span class="fu">:</span> <span class="st">&quot;tenant-public-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;applicationId&quot;</span><span class="fu">:</span> <span class="st">&quot;application-public-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;hwid&quot;</span><span class="fu">:</span> <span class="st">&quot;&lt;64-char-application-scoped-sha256&gt;&quot;</span><span class="fu">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;appVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;2.4.0&quot;</span><span class="fu">,</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;platform&quot;</span><span class="fu">:</span> <span class="st">&quot;windows-x64&quot;</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The server rejects the connection unless all four scopes agree:</p>
+<ol type="1">
+<li>JWT <code>ten</code> claim equals the presented tenant UUID.</li>
+<li>JWT <code>app</code> claim equals the presented application
+UUID.</li>
+<li>Database license belongs to the same tenant/application.</li>
+<li>HWID is the v2 fingerprint scoped to that tenant/application.</li>
+</ol>
+<p>A valid key for one application therefore cannot be replayed by a
+different application on the same machine.</p>
+<h2 data-number="3.2" id="welcome"><span
+class="header-section-number">3.2</span> WELCOME</h2>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;WELCOME&quot;</span><span class="fu">,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;clientId&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;licenseId&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;state&quot;</span><span class="fu">:</span> <span class="st">&quot;LICENSED&quot;</span><span class="fu">,</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tenantId&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;applicationId&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;modules&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;CORE&quot;</span><span class="ot">,</span> <span class="st">&quot;REPORTING&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;entitlementVersion&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;heartbeatSeconds&quot;</span><span class="fu">:</span> <span class="dv">30</span><span class="fu">,</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;serverTime&quot;</span><span class="fu">:</span> <span class="dv">1760000000000</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><code>modules</code> is the authoritative feature set for the
+validated key. An application should enable gated functionality only
+after WELCOME has been accepted.</p>
+<h2 data-number="3.3" id="heartbeat"><span
+class="header-section-number">3.3</span> HEARTBEAT</h2>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;type&quot;</span><span class="fu">:</span><span class="st">&quot;HEARTBEAT&quot;</span><span class="fu">,</span><span class="dt">&quot;ts&quot;</span><span class="fu">:</span><span class="dv">1760000000000</span><span class="fu">,</span><span class="dt">&quot;nonce&quot;</span><span class="fu">:</span><span class="st">&quot;random-uuid&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Response:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;type&quot;</span><span class="fu">:</span><span class="st">&quot;HEARTBEAT_ACK&quot;</span><span class="fu">,</span><span class="dt">&quot;serverTime&quot;</span><span class="fu">:</span><span class="dv">1760000000000</span><span class="fu">,</span><span class="dt">&quot;nonce&quot;</span><span class="fu">:</span><span class="st">&quot;same-nonce&quot;</span><span class="fu">,</span><span class="dt">&quot;entitlementVersion&quot;</span><span class="fu">:</span><span class="dv">1</span><span class="fu">}</span></span></code></pre></div>
+<p>The default interval is 30 seconds; the server destroys stale
+sessions after 90 seconds. The reference SDK also uses a fail-closed
+acknowledgement watchdog.</p>
+<h2 data-number="3.4" id="entitlements_request"><span
+class="header-section-number">3.4</span> ENTITLEMENTS_REQUEST</h2>
+<p>A running application can refresh its module list through the
+existing channel:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;type&quot;</span><span class="fu">:</span><span class="st">&quot;ENTITLEMENTS_REQUEST&quot;</span><span class="fu">,</span><span class="dt">&quot;nonce&quot;</span><span class="fu">:</span><span class="st">&quot;random-uuid&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Response:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span><span class="st">&quot;ENTITLEMENTS&quot;</span><span class="fu">,</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;nonce&quot;</span><span class="fu">:</span><span class="st">&quot;same-nonce&quot;</span><span class="fu">,</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;modules&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;CORE&quot;</span><span class="ot">,</span><span class="st">&quot;REPORTING&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;entitlementVersion&quot;</span><span class="fu">:</span><span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;signedEvent&quot;</span><span class="fu">:</span><span class="st">&quot;&lt;Ed25519 signed short-lived JWT&gt;&quot;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The client must verify that the signed snapshot matches the tenant
+UUID, application UUID, license ID, client ID, module list, entitlement
+version, issuer/audience, expiry, and monotonic sequence before applying
+it.</p>
+<h2 data-number="3.5" id="license_event"><span
+class="header-section-number">3.5</span> LICENSE_EVENT</h2>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;type&quot;</span><span class="fu">:</span><span class="st">&quot;LICENSE_EVENT&quot;</span><span class="fu">,</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;LICENSE_REVOKED&quot;</span><span class="fu">,</span><span class="dt">&quot;signedEvent&quot;</span><span class="fu">:</span><span class="st">&quot;&lt;signed JWT&gt;&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Supported operational events include:</p>
+<ul>
+<li><code>LICENSE_REVOKED</code></li>
+<li><code>LICENSE_SUSPENDED</code></li>
+<li><code>LICENSE_EXPIRED</code></li>
+<li><code>LICENSE_RESTORED</code></li>
+<li><code>CLIENT_BANNED</code></li>
+<li><code>TENANT_SUSPENDED</code></li>
+<li><code>REVALIDATE_NOW</code></li>
+<li><code>LICENSE_KEY_REISSUED</code></li>
+</ul>
+<p>State events contain tenant/application scope, license ID, client ID,
+sequence, module snapshot/entitlement version when available, short
+expiration, and an Ed25519 signature.</p>
+<h2 data-number="3.6" id="module-changes-and-key-reissue"><span
+class="header-section-number">3.6</span> Module changes and key
+reissue</h2>
+<p>The module list is signed into the license JWT. Changing a license’s
+selected modules increments <code>entitlementVersion</code> and returns
+a <strong>replacement JWT</strong>. The previous JWT hash is replaced in
+PostgreSQL, so the old key is rejected on reconnect. Connected clients
+receive <code>LICENSE_KEY_REISSUED</code>; administrators must securely
+deliver/persist the replacement key in the licensed application.</p>
+<div class="section-break">
+
+</div>
+<h1 data-number="4" id="admin-rest-api"><span
+class="header-section-number">4</span> Admin REST API</h1>
+<p>Base URL: <code>http://localhost:8081/api</code></p>
+<p>The browser admin uses a short-lived HttpOnly, SameSite session
+cookie with origin checks. All mutation endpoints require authenticated
+RBAC permissions.</p>
+<h2 data-number="4.1" id="authentication"><span
+class="header-section-number">4.1</span> Authentication</h2>
+<ul>
+<li><code>POST /auth/login</code></li>
+<li><code>GET /auth/me</code></li>
+<li><code>POST /auth/change-password</code></li>
+<li><code>POST /auth/logout</code></li>
+</ul>
+<h2 data-number="4.2" id="vendors-tenants"><span
+class="header-section-number">4.2</span> Vendors / tenants</h2>
+<ul>
+<li><code>GET /tenants</code></li>
+<li><code>POST /tenants</code></li>
+</ul>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span><span class="st">&quot;VENDOR_A&quot;</span><span class="fu">,</span><span class="dt">&quot;name&quot;</span><span class="fu">:</span><span class="st">&quot;Vendor A&quot;</span><span class="fu">,</span><span class="dt">&quot;description&quot;</span><span class="fu">:</span><span class="st">&quot;optional&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Each tenant receives an immutable public UUID used as the protocol
+namespace.</p>
+<ul>
+<li><code>POST /tenants/:id/status</code></li>
+</ul>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;status&quot;</span><span class="fu">:</span><span class="st">&quot;SUSPENDED&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>A suspended tenant causes all of its online licensing checks to fail
+closed.</p>
+<h2 data-number="4.3" id="applications"><span
+class="header-section-number">4.3</span> Applications</h2>
+<p>Both <code>/applications</code> and the backward-compatible
+<code>/products</code> path address the application resource.</p>
+<ul>
+<li><code>GET /applications</code></li>
+<li><code>POST /applications</code></li>
+</ul>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tenantId&quot;</span><span class="fu">:</span><span class="st">&quot;database-tenant-id&quot;</span><span class="fu">,</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;code&quot;</span><span class="fu">:</span><span class="st">&quot;DESKTOP_PRO&quot;</span><span class="fu">,</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span><span class="st">&quot;Desktop Pro&quot;</span><span class="fu">,</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span><span class="st">&quot;optional&quot;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Each application receives a different public UUID even if two tenants
+use the same code/name.</p>
+<h2 data-number="4.4" id="modules"><span
+class="header-section-number">4.4</span> Modules</h2>
+<ul>
+<li><code>POST /applications/:applicationDatabaseId/modules</code></li>
+</ul>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span><span class="st">&quot;REPORTING&quot;</span><span class="fu">,</span><span class="dt">&quot;name&quot;</span><span class="fu">:</span><span class="st">&quot;Reporting&quot;</span><span class="fu">,</span><span class="dt">&quot;description&quot;</span><span class="fu">:</span><span class="st">&quot;optional&quot;</span><span class="fu">}</span></span></code></pre></div>
+<ul>
+<li><code>PATCH /applications/:applicationDatabaseId/modules/:moduleId</code></li>
+</ul>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;enabled&quot;</span><span class="fu">:</span><span class="kw">false</span><span class="fu">}</span></span></code></pre></div>
+<p>A module that is still assigned to any license cannot be disabled;
+the API returns <code>409</code> until those licenses are reissued
+without that module.</p>
+<h2 data-number="4.5" id="licenses"><span
+class="header-section-number">4.5</span> Licenses</h2>
+<ul>
+<li><code>GET /licenses?q=...</code></li>
+<li><code>POST /licenses</code></li>
+</ul>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;productId&quot;</span><span class="fu">:</span><span class="st">&quot;application-database-id&quot;</span><span class="fu">,</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;moduleIds&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;module-db-id-1&quot;</span><span class="ot">,</span><span class="st">&quot;module-db-id-2&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;customerRef&quot;</span><span class="fu">:</span><span class="st">&quot;customer-123&quot;</span><span class="fu">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;hwid&quot;</span><span class="fu">:</span><span class="st">&quot;optional-application-scoped-sha256-hwid&quot;</span><span class="fu">,</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;expiresAt&quot;</span><span class="fu">:</span><span class="st">&quot;2027-08-21T00:00:00.000Z&quot;</span><span class="fu">,</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;maxActivations&quot;</span><span class="fu">:</span><span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;metadata&quot;</span><span class="fu">:{</span><span class="dt">&quot;edition&quot;</span><span class="fu">:</span><span class="st">&quot;pro&quot;</span><span class="fu">}</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The plaintext JWT key is returned once and is not stored. PostgreSQL
+stores the token SHA-256 hash.</p>
+<ul>
+<li><code>POST /licenses/:id/modules</code></li>
+</ul>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;moduleIds&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;module-db-id-1&quot;</span><span class="ot">]</span><span class="fu">}</span></span></code></pre></div>
+<p>This reissues the JWT, increments <code>entitlementVersion</code>,
+invalidates the previous token hash, and returns the replacement key
+once.</p>
+<ul>
+<li><code>POST /licenses/:id/status</code></li>
+</ul>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;status&quot;</span><span class="fu">:</span><span class="st">&quot;REVOKED&quot;</span><span class="fu">,</span><span class="dt">&quot;reason&quot;</span><span class="fu">:</span><span class="st">&quot;Reported stolen&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>Valid states are <code>ACTIVE</code>, <code>SUSPENDED</code>, and
+<code>REVOKED</code>.</p>
+<h2 data-number="4.6" id="clients"><span
+class="header-section-number">4.6</span> Clients</h2>
+<ul>
+<li><code>GET /clients</code></li>
+<li><code>POST /clients/:clientId/revalidate</code></li>
+<li><code>POST /clients/:clientId/ban</code></li>
+<li><code>POST /clients/:clientId/unban</code></li>
+</ul>
+<p>A client ban affects only that installation. License revocation
+affects all activations of the license. Tenant suspension affects every
+application/license below that tenant.</p>
+<h2 data-number="4.7" id="dashboard-and-audit"><span
+class="header-section-number">4.7</span> Dashboard and audit</h2>
+<ul>
+<li><code>GET /dashboard</code></li>
+<li><code>GET /audit</code></li>
+</ul>
+<div class="section-break">
+
+</div>
+<h1 data-number="5" id="architecture"><span
+class="header-section-number">5</span> Architecture</h1>
+<h2 data-number="5.1" id="security-boundaries"><span
+class="header-section-number">5.1</span> Security boundaries</h2>
+<pre class="text"><code>Vendor / Tenant (public UUID)
+  └─ Application (different public UUID per tenant/application)
+      ├─ Module CORE
+      ├─ Module REPORTING
+      └─ Module AUTOMATION
+           └─ License (unique Ed25519 JWT + selected module set)
+                └─ Activation (random client UUID + app-scoped HWID + mTLS fingerprint)</code></pre>
+<p>The same physical computer does not have one global License Manager
+HWID. It has a separate derived HWID for each
+<code>(tenant UUID, application UUID)</code> namespace. This
+intentionally prevents license reuse and cross-application
+correlation.</p>
+<h2 data-number="5.2" id="components"><span
+class="header-section-number">5.2</span> Components</h2>
+<pre class="text"><code>React Admin Panel --HTTPS--&gt; Node.js Admin API --Prisma--&gt; PostgreSQL
+                                      |
+                                      +--- authoritative tenant/app/module/license state
+                                      |
+Licensed application &lt;--TLS 1.3/mTLS--&gt; Node.js License TCP Server :7443
+     |                                      |
+     +-- LicenseSystem SDK                  +-- signed validation/events
+     +-- app-scoped HWID                    +-- in-memory live socket registry
+     +-- module gates</code></pre>
+<h2 data-number="5.3" id="license-jwt-v2"><span
+class="header-section-number">5.3</span> License JWT v2</h2>
+<p>Representative claims:</p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;typ&quot;</span><span class="fu">:</span><span class="st">&quot;license&quot;</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;jti&quot;</span><span class="fu">:</span><span class="st">&quot;license-id&quot;</span><span class="fu">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;lic&quot;</span><span class="fu">:</span><span class="st">&quot;LIC-...&quot;</span><span class="fu">,</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ten&quot;</span><span class="fu">:</span><span class="st">&quot;tenant-public-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;app&quot;</span><span class="fu">:</span><span class="st">&quot;application-public-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;prd&quot;</span><span class="fu">:</span><span class="st">&quot;OMNI_APP&quot;</span><span class="fu">,</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mod&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;CORE&quot;</span><span class="ot">,</span><span class="st">&quot;REPORTING&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ev&quot;</span><span class="fu">:</span><span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;hwd&quot;</span><span class="fu">:</span><span class="st">&quot;optional-server-hmac-hwid&quot;</span><span class="fu">,</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;iss&quot;</span><span class="fu">:</span><span class="st">&quot;secure-license-manager&quot;</span><span class="fu">,</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;aud&quot;</span><span class="fu">:</span><span class="st">&quot;licensed-app&quot;</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The JWT proves issuance and immutable scope. PostgreSQL remains
+authoritative for revocation, suspension, current entitlement version,
+activation count, bans, and expiry.</p>
+<h2 data-number="5.4" id="multi-tenant-isolation-rules"><span
+class="header-section-number">5.4</span> Multi-tenant isolation
+rules</h2>
+<ul>
+<li>Product/application code is unique <strong>inside a tenant</strong>,
+not globally.</li>
+<li>Public tenant UUID and application UUID are globally unique.</li>
+<li>Every HELLO contains both UUIDs.</li>
+<li>The JWT contains both UUIDs.</li>
+<li>The database relationship is checked again server-side.</li>
+<li>Application-scoped HWID includes both UUIDs.</li>
+<li>A persistent random client ID is checked against its existing
+license/HWID/application binding.</li>
+<li>An mTLS certificate fingerprint can be bound to the activation.</li>
+</ul>
+<p>These checks are intentionally redundant so one compromised layer
+does not silently turn into cross-tenant license acceptance.</p>
+<h2 data-number="5.5" id="modules-1"><span
+class="header-section-number">5.5</span> Modules</h2>
+<p>Modules are application-owned feature identifiers. A license selects
+zero or more enabled modules through <code>LicenseModule</code>. The
+authorized codes are signed into the JWT and returned in WELCOME and
+signed entitlement snapshots. Applications gate functionality with
+<code>hasModule()</code> / <code>requireModule()</code> rather than
+parsing the JWT themselves.</p>
+<h2 data-number="5.6" id="horizontal-scaling"><span
+class="header-section-number">5.6</span> Horizontal scaling</h2>
+<p>The included live-client registry is in-memory and therefore
+single-node for immediate push delivery. PostgreSQL remains
+authoritative, so reconnect validation is safe. For multiple TCP nodes,
+use authenticated pub/sub (for example Redis or NATS) to route a
+ban/revoke/revalidation event to the process owning the socket, and use
+sticky/consistent routing where appropriate.</p>
+<div class="section-break">
+
+</div>
+<h1 data-number="6" id="security-model"><span
+class="header-section-number">6</span> Security model</h1>
+<h2 data-number="6.1" id="implemented-controls"><span
+class="header-section-number">6.1</span> Implemented controls</h2>
+<ul>
+<li>Ed25519 (<code>EdDSA</code>) allow-listed JWT signatures.</li>
+<li>Tenant and application UUIDs bound into license JWT claims and every
+client handshake.</li>
+<li>Module entitlement list and entitlement version signed into the
+license JWT.</li>
+<li>Application-scoped client HWID: same hardware produces different
+fingerprints for different tenant/application namespaces.</li>
+<li>Server-side HMAC-SHA256 of client HWID using a non-public pepper and
+license-specific context.</li>
+<li>Plaintext license JWT stored only at issuance response; PostgreSQL
+stores SHA-256 token hash.</li>
+<li>TLS 1.3 with optional/production-required mTLS.</li>
+<li>Activation-to-client UUID, HWID, tenant/application namespace and
+client-certificate fingerprint checks.</li>
+<li>Serializable activation transaction plus PostgreSQL advisory
+transaction lock for activation-count races.</li>
+<li>Always-online heartbeat and client-side validation watchdog.</li>
+<li>PostgreSQL-authoritative revoke/suspend/ban/expiry checks.</li>
+<li>Ed25519-signed, short-lived, sequenced state events and entitlement
+snapshots.</li>
+<li>No arbitrary server-to-client command execution.</li>
+<li>Argon2id admin password hashing, login throttling/lockout, RBAC,
+HttpOnly SameSite session cookies, origin checks, audit logs and
+token-version invalidation.</li>
+<li>Weak <code>admin / 123456</code> credential limited to an explicitly
+enabled development bootstrap and refused in production.</li>
+</ul>
+<h2 data-number="6.2" id="critical-integration-rules"><span
+class="header-section-number">6.2</span> Critical integration rules</h2>
+<ol type="1">
+<li>Never ship the Ed25519 <strong>private</strong> signing key, HWID
+pepper, admin JWT secret, database credentials, or CA private key in an
+application client.</li>
+<li>Public tenant UUID, application UUID, server hostname, CA trust
+anchor/client certificate, and Ed25519 <strong>public</strong>
+verification key may be distributed as application configuration.</li>
+<li>Do not unlock features by decoding the license JWT locally. Treat
+<code>LicenseSystem.connect()</code> / signed online entitlement state
+as the authorization source.</li>
+<li>Deny licensed features when always-online validation exceeds the
+configured timeout.</li>
+<li>Use <code>hasModule()</code> or <code>requireModule()</code>
+immediately before sensitive feature entry points; do not rely only on
+hiding a UI button.</li>
+<li>Store a reissued JWT in OS-protected application storage where
+available. Never log it.</li>
+<li>Treat HWID as non-secret and potentially clonable. It is one signal
+combined with client ID, online state, activation limits and preferably
+mTLS.</li>
+</ol>
+<h2 data-number="6.3" id="production-requirements"><span
+class="header-section-number">6.3</span> Production requirements</h2>
+<ul>
+<li>Replace development certificates with a managed private PKI; issue a
+distinct client certificate per installation/device enrollment when
+practical.</li>
+<li>Protect signing material with KMS/HSM or a hardened signing service
+rather than a general application filesystem.</li>
+<li>Add signing-key rotation using <code>kid</code> with overlapping
+verification windows.</li>
+<li>Add SSO/MFA for administrators and remove password bootstrap after
+initial provisioning.</li>
+<li>Terminate the admin API behind HTTPS and a trusted reverse
+proxy/WAF; restrict TCP exposure to required networks where
+possible.</li>
+<li>Store secrets in a secrets manager and rotate them.</li>
+<li>Encrypt PostgreSQL at rest, enforce TLS to PostgreSQL, use
+least-privilege roles, backups and PITR.</li>
+<li>Export audit/security events to a SIEM; alert on repeated TLS
+rejects, activation-limit failures, cloned client IDs and unusual
+tenant/application mismatches.</li>
+<li>Rate-limit protocol handshakes at the network edge and enforce
+connection quotas.</li>
+<li>Add Redis/NATS authenticated pub/sub before horizontally scaling the
+TCP server.</li>
+<li>Perform dependency scanning, SAST/DAST, container scanning,
+penetration testing and protocol fuzzing before public deployment.</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,13 @@
+node_modules
+.env
+.env.*
+!.env.example
+dist
+*.tsbuildinfo
+apps/server/src/generated
+certs/dev/*.pem
+certs/production/*.pem
+secrets/*.txt
+kashtrix-streamops/
+*.log
+.DS_Store
