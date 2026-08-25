@@ -363,17 +363,18 @@ export function deliverProvisionedLicense(
     clientId: string;
     tenantId: string;
     applicationId: string;
-    hwid: string;
+    hwid?: string;
   },
   licenseKey: string,
 ) {
+  const normalizedHwid = input.hwid ? input.hwid.toLowerCase() : undefined;
   const waiting = provisioningRegistry.get(input.clientId);
   if (
     waiting &&
     !waiting.socket.destroyed &&
     waiting.tenantPublicId === input.tenantId &&
     waiting.productPublicId === input.applicationId &&
-    waiting.hwid === input.hwid
+    (!normalizedHwid || waiting.hwid === normalizedHwid)
   ) {
     provisioningRegistry.delete(input.clientId);
     writeMessage(waiting.socket, { type: "LICENSE_READY", licenseKey });
@@ -386,7 +387,7 @@ export function deliverProvisionedLicense(
     active.socket.destroyed ||
     active.tenantPublicId !== input.tenantId ||
     active.productPublicId !== input.applicationId ||
-    active.hwid !== input.hwid
+    (normalizedHwid && active.hwid !== normalizedHwid)
   )
     return false;
   writeMessage(active.socket, { type: "LICENSE_READY", licenseKey });

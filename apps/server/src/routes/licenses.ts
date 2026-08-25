@@ -340,32 +340,38 @@ licensesRouter.post(
     });
 
     if (parsed.data.status === "ACTIVE") {
-      const reissued = await reissueCurrentLicense(license.id);
       await Promise.all(
         license.activations.map(async (a) => {
-          const live = registry.get(a.clientId);
+          await pushLicenseEvent(
+            a.clientId,
+            "LICENSE_RESTORED",
+            parsed.data.reason,
+          );
+          await pushLicenseEvent(
+            a.clientId,
+            "REVALIDATE_NOW",
+            parsed.data.reason,
+          );
+        }),
+      );
+
+      const waitingActivations = license.activations.filter((a) =>
+        provisioningRegistry.get(a.clientId),
+      );
+      const anyWaitingProvisioning =
+        waitingActivations.length > 0 ||
+        provisioningRegistry
+          .list()
+          .some(
+            (w) =>
+              w.tenantPublicId === license.product.tenant.publicId &&
+              w.productPublicId === license.product.publicId,
+          );
+
+      if (anyWaitingProvisioning) {
+        const reissued = await reissueCurrentLicense(license.id);
+        for (const a of waitingActivations) {
           const waiting = provisioningRegistry.get(a.clientId);
-          if (live) {
-            await pushLicenseEvent(
-              a.clientId,
-              "LICENSE_RESTORED",
-              parsed.data.reason,
-            );
-            await pushLicenseEvent(
-              a.clientId,
-              "REVALIDATE_NOW",
-              parsed.data.reason,
-            );
-            deliverProvisionedLicense(
-              {
-                clientId: a.clientId,
-                tenantId: license.product.tenant.publicId,
-                applicationId: license.product.publicId,
-                hwid: live.hwid,
-              },
-              reissued.jwtKey,
-            );
-          }
           if (waiting) {
             deliverProvisionedLicense(
               {
@@ -377,29 +383,28 @@ licensesRouter.post(
               reissued.jwtKey,
             );
           }
-        }),
-      );
-
-      for (const [clientId, waiting] of provisioningRegistry.entries()) {
-        if (
-          waiting.tenantPublicId === license.product.tenant.publicId &&
-          waiting.productPublicId === license.product.publicId
-        ) {
-          const activeLic = await findActiveLicenseForInstallation(
-            license.productId,
-            clientId,
-            waiting.hwid,
-          );
-          if (activeLic && activeLic.id === license.id) {
-            deliverProvisionedLicense(
-              {
-                clientId,
-                tenantId: waiting.tenantPublicId,
-                applicationId: waiting.productPublicId,
-                hwid: waiting.hwid,
-              },
-              reissued.jwtKey,
+        }
+        for (const [clientId, waiting] of provisioningRegistry.entries()) {
+          if (
+            waiting.tenantPublicId === license.product.tenant.publicId &&
+            waiting.productPublicId === license.product.publicId
+          ) {
+            const activeLic = await findActiveLicenseForInstallation(
+              license.productId,
+              clientId,
+              waiting.hwid,
             );
+            if (activeLic && activeLic.id === license.id) {
+              deliverProvisionedLicense(
+                {
+                  clientId,
+                  tenantId: waiting.tenantPublicId,
+                  applicationId: waiting.productPublicId,
+                  hwid: waiting.hwid,
+                },
+                reissued.jwtKey,
+              );
+            }
           }
         }
       }
@@ -411,11 +416,6 @@ licensesRouter.post(
       await Promise.all(
         license.activations.map(async (a) => {
           const live = registry.get(a.clientId);
-          await pushLicenseEvent(
-            a.clientId,
-            "REVALIDATE_NOW",
-            parsed.data.reason,
-          );
           const delivered = await pushLicenseEvent(
             a.clientId,
             event,
