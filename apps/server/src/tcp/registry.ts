@@ -36,5 +36,7 @@ export const provisioningRegistry = {
   set(client: ProvisioningClient) { provisioningClients.set(client.clientId, client); },
   get(clientId: string) { return provisioningClients.get(clientId); },
   delete(clientId: string) { provisioningClients.delete(clientId); },
+  list() { return [...provisioningClients.values()]; },
+  entries() { return provisioningClients.entries(); },
   size() { return provisioningClients.size; }
 };

@@ -6,10 +6,12 @@ import { requireAdmin, requireRoles } from "../security/authMiddleware.js";
 import { audit } from "../services/audit.js";
 import {
   createLicense,
+  findActiveLicenseForInstallation,
+  reissueCurrentLicense,
   reissueLicenseModules,
 } from "../services/licenseService.js";
 import { deliverProvisionedLicense, pushLicenseEvent } from "../tcp/server.js";
-import { registry } from "../tcp/registry.js";
+import { provisioningRegistry, registry } from "../tcp/registry.js";
 import { resolveProvisioningApplication } from "../services/provisioningService.js";
 import {
   enabledCodes,
@@ -336,38 +338,102 @@ licensesRouter.post(
       },
       include: includeLicense,
     });
-    const event =
-      parsed.data.status === "ACTIVE"
-        ? "LICENSE_RESTORED"
-        : parsed.data.status === "SUSPENDED"
+
+    if (parsed.data.status === "ACTIVE") {
+      const reissued = await reissueCurrentLicense(license.id);
+      await Promise.all(
+        license.activations.map(async (a) => {
+          const live = registry.get(a.clientId);
+          const waiting = provisioningRegistry.get(a.clientId);
+          if (live) {
+            await pushLicenseEvent(
+              a.clientId,
+              "LICENSE_RESTORED",
+              parsed.data.reason,
+            );
+            await pushLicenseEvent(
+              a.clientId,
+              "REVALIDATE_NOW",
+              parsed.data.reason,
+            );
+            deliverProvisionedLicense(
+              {
+                clientId: a.clientId,
+                tenantId: license.product.tenant.publicId,
+                applicationId: license.product.publicId,
+                hwid: live.hwid,
+              },
+              reissued.jwtKey,
+            );
+          }
+          if (waiting) {
+            deliverProvisionedLicense(
+              {
+                clientId: a.clientId,
+                tenantId: waiting.tenantPublicId,
+                applicationId: waiting.productPublicId,
+                hwid: waiting.hwid,
+              },
+              reissued.jwtKey,
+            );
+          }
+        }),
+      );
+
+      for (const [clientId, waiting] of provisioningRegistry.entries()) {
+        if (
+          waiting.tenantPublicId === license.product.tenant.publicId &&
+          waiting.productPublicId === license.product.publicId
+        ) {
+          const activeLic = await findActiveLicenseForInstallation(
+            license.productId,
+            clientId,
+            waiting.hwid,
+          );
+          if (activeLic && activeLic.id === license.id) {
+            deliverProvisionedLicense(
+              {
+                clientId,
+                tenantId: waiting.tenantPublicId,
+                applicationId: waiting.productPublicId,
+                hwid: waiting.hwid,
+              },
+              reissued.jwtKey,
+            );
+          }
+        }
+      }
+    } else {
+      const event =
+        parsed.data.status === "SUSPENDED"
           ? "LICENSE_SUSPENDED"
           : "LICENSE_REVOKED";
-    await Promise.all(
-      license.activations.map(async (a) => {
-        const live = registry.get(a.clientId);
-        if (parsed.data.status !== "ACTIVE") {
+      await Promise.all(
+        license.activations.map(async (a) => {
+          const live = registry.get(a.clientId);
           await pushLicenseEvent(
             a.clientId,
             "REVALIDATE_NOW",
             parsed.data.reason,
           );
-        }
-        const delivered = await pushLicenseEvent(
-          a.clientId,
-          event,
-          parsed.data.reason,
-        );
-        if (parsed.data.status !== "ACTIVE" && live) {
-          setTimeout(() => {
-            if (!live.socket.destroyed) {
-              live.socket.end();
-              setTimeout(() => live.socket.destroy(), 500);
-            }
-          }, 500);
-        }
-        return delivered;
-      }),
-    );
+          const delivered = await pushLicenseEvent(
+            a.clientId,
+            event,
+            parsed.data.reason,
+          );
+          if (live) {
+            setTimeout(() => {
+              if (!live.socket.destroyed) {
+                live.socket.end();
+                setTimeout(() => live.socket.destroy(), 500);
+              }
+            }, 500);
+          }
+          return delivered;
+        }),
+      );
+    }
+
     await audit(req, {
       action: `LICENSE_${parsed.data.status}`,
       entityType: "License",
