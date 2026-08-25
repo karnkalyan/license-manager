@@ -319,6 +319,27 @@ async function handleProvisioning(socket: TLSSocket, raw: unknown) {
     payload.hwid,
   );
   if (activeLicense) {
+    const licRecord = await prisma.license.findUnique({
+      where: { id: activeLicense.id },
+      select: { metadata: true },
+    });
+    const meta =
+      licRecord?.metadata &&
+      typeof licRecord.metadata === "object" &&
+      !Array.isArray(licRecord.metadata)
+        ? (licRecord.metadata as Record<string, unknown>)
+        : {};
+    if (meta.provisioningId !== request.provisioningId) {
+      await prisma.license.update({
+        where: { id: activeLicense.id },
+        data: {
+          metadata: {
+            ...meta,
+            provisioningId: request.provisioningId,
+          } as any,
+        },
+      });
+    }
     const reissued = await reissueCurrentLicense(activeLicense.id);
     writeMessage(socket, { type: "LICENSE_READY", licenseKey: reissued.jwtKey });
     setTimeout(() => socket.end(), 250);

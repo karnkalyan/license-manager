@@ -99,6 +99,7 @@ type License = {
     customerName?: string;
     customerEmail?: string;
     entitlements?: Record<string, boolean | number>;
+    provisioningId?: string;
   };
   status: string;
   jwtKey?: string;
@@ -1639,6 +1640,44 @@ function CreateLicense({
   );
 }
 
+function productToDefaultCapabilities(product: Product): Capability[] {
+  return (product.modules || []).map((m) => {
+    if (m.code === "RECORDING_DEVICES") {
+      return {
+        code: m.code,
+        name: m.name,
+        description: m.description,
+        type: "integer" as const,
+        min: 0,
+        max: 1000000,
+        step: 1,
+        defaultValue: 0,
+        unit: "devices",
+      };
+    }
+    if (m.code === "TRANSCODE_QUEUE_ITEMS") {
+      return {
+        code: m.code,
+        name: m.name,
+        description: m.description,
+        type: "integer" as const,
+        min: 0,
+        max: 1000000,
+        step: 1,
+        defaultValue: 0,
+        unit: "jobs",
+      };
+    }
+    return {
+      code: m.code,
+      name: m.name,
+      description: m.description,
+      type: "boolean" as const,
+      defaultValue: false,
+    };
+  });
+}
+
 function ReissueModules({
   license,
   onClose,
@@ -1648,11 +1687,30 @@ function ReissueModules({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [provisioningId, setProvisioningId] = useState("");
-  const [catalog, setCatalog] = useState<Product | null>(null);
+  const rememberedId = license.metadata?.provisioningId || "";
+  const [provisioningId, setProvisioningId] = useState(rememberedId);
+  const [catalog, setCatalog] = useState<Product | null>(() => {
+    if (license.product?.modules?.length) {
+      return {
+        ...license.product,
+        capabilities: productToDefaultCapabilities(license.product),
+      };
+    }
+    return null;
+  });
   const [entitlements, setEntitlements] = useState<
     Record<string, boolean | number>
-  >({});
+  >(() => {
+    const current =
+      license.metadata?.entitlements ||
+      Object.fromEntries(
+        license.modules.map((item) => [item.module.code, true]),
+      );
+    const defaultCaps = license.product?.modules
+      ? productToDefaultCapabilities(license.product)
+      : [];
+    return initialEntitlements(defaultCaps, current);
+  });
   const [customerName, setCustomerName] = useState(
     license.metadata?.customerName || license.customerRef || "",
   );
@@ -1669,14 +1727,23 @@ function ReissueModules({
   useEffect(() => {
     const value = provisioningId.trim();
     if (!value) {
-      setCatalog(null);
-      setEntitlements({});
+      if (license.product?.modules?.length) {
+        const caps = productToDefaultCapabilities(license.product);
+        setCatalog({ ...license.product, capabilities: caps });
+        const current =
+          license.metadata?.entitlements ||
+          Object.fromEntries(
+            license.modules.map((item) => [item.module.code, true]),
+          );
+        setEntitlements(initialEntitlements(caps, current));
+      } else {
+        setCatalog(null);
+        setEntitlements({});
+      }
       setError("");
       return;
     }
     if (!value.startsWith("KTX1.")) {
-      setCatalog(null);
-      setEntitlements({});
       setError(
         "Paste the KTX1 provisioning ID shown by the client application.",
       );
@@ -1703,8 +1770,13 @@ function ReissueModules({
           );
         setEntitlements(initialEntitlements(result.capabilities, current));
       } catch (e) {
-        setCatalog(null);
-        setEntitlements({});
+        if (license.product?.modules?.length) {
+          const caps = productToDefaultCapabilities(license.product);
+          setCatalog({ ...license.product, capabilities: caps });
+        } else {
+          setCatalog(null);
+          setEntitlements({});
+        }
         setError(e instanceof Error ? e.message : "Provisioning lookup failed");
       } finally {
         setResolving(false);
@@ -1720,7 +1792,7 @@ function ReissueModules({
       const l = await api<License>(`/licenses/${license.id}/modules`, {
         method: "POST",
         body: JSON.stringify({
-          provisioningId: provisioningId.trim(),
+          provisioningId: provisioningId.trim() || undefined,
           moduleIds: [],
           entitlements,
           customerName: customerName.trim() || undefined,
@@ -1744,7 +1816,9 @@ function ReissueModules({
       subtitle={
         created
           ? "The previous JWT is now invalid for reconnects."
-          : "Paste a current client provisioning ID before reissuing this license."
+          : rememberedId
+            ? "Client provisioning ID remembered from activation. Update details or module entitlements."
+            : "Update client details and module entitlements."
       }
       onClose={onClose}
     >
@@ -1765,14 +1839,16 @@ function ReissueModules({
             <input
               value={provisioningId}
               onChange={(e) => setProvisioningId(e.target.value)}
-              placeholder="Paste KTX1… from the client"
+              placeholder="Paste KTX1… from the client (optional if client is already provisioned)"
             />
             <small>
               {resolving
                 ? "Reading client module catalog…"
                 : catalog
-                  ? `${catalog.modules.length} client-advertised modules loaded.`
-                  : "Required to load the current module catalog."}
+                  ? provisioningId.trim()
+                    ? `${catalog.modules.length} client-advertised modules loaded${rememberedId && provisioningId === rememberedId ? " (remembered from activation)" : ""}.`
+                    : `${catalog.modules.length} application modules loaded.`
+                  : "Optional if product modules are already registered."}
             </small>
           </label>
           <label>

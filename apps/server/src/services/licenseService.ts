@@ -106,6 +106,7 @@ export async function reissueLicenseModules(
     customerEmail?: string;
     expiresAt?: Date;
     entitlements?: EntitlementMap;
+    provisioningId?: string;
   } = {},
 ) {
   const current = await prisma.license.findUniqueOrThrow({
@@ -129,6 +130,7 @@ export async function reissueLicenseModules(
       );
   const metadata = {
     ...currentMetadata,
+    ...(details.provisioningId ? { provisioningId: details.provisioningId } : {}),
     ...(details.customerName ? { customerName: details.customerName } : {}),
     ...(details.customerEmail ? { customerEmail: details.customerEmail } : {}),
     entitlements,

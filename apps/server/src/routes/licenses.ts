@@ -116,6 +116,7 @@ licensesRouter.post(
         customerRef: parsed.data.customerRef || parsed.data.customerName,
         metadata: {
           ...(parsed.data.metadata || {}),
+          provisioningId: parsed.data.provisioningId,
           ...(parsed.data.customerName
             ? { customerName: parsed.data.customerName }
             : {}),
@@ -171,8 +172,8 @@ licensesRouter.post(
     const id = req.params.id as string;
     const parsed = z
       .object({
-        provisioningId: z.string().min(1).max(8192),
-        moduleIds: z.array(z.string().min(1)).max(100),
+        provisioningId: z.string().min(1).max(8192).optional(),
+        moduleIds: z.array(z.string().min(1)).max(100).default([]),
         entitlements: z
           .record(
             z.string(),
@@ -193,30 +194,59 @@ licensesRouter.post(
     if (!parsed.success)
       return res.status(400).json({ error: "Invalid module selection" });
     try {
-      const [current, resolved] = await Promise.all([
-        prisma.license.findUniqueOrThrow({
-          where: { id },
-          select: { productId: true },
-        }),
-        resolveProvisioningApplication(parsed.data.provisioningId),
-      ]);
-      if (current.productId !== resolved.product.id)
-        throw new Error(
-          "Client provisioning ID belongs to a different application",
+      const current = await prisma.license.findUniqueOrThrow({
+        where: { id },
+        include: { product: { include: { tenant: true, modules: true } } },
+      });
+      const currentMetadata =
+        current.metadata &&
+        typeof current.metadata === "object" &&
+        !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, unknown>)
+          : {};
+      const provId =
+        parsed.data.provisioningId ||
+        (typeof currentMetadata.provisioningId === "string"
+          ? currentMetadata.provisioningId
+          : undefined);
+
+      let moduleIds: string[] = [];
+      let entitlements: Record<string, boolean | number> = parsed.data.entitlements;
+      let resolvedPayload: any = null;
+
+      if (provId) {
+        const resolved = await resolveProvisioningApplication(provId);
+        if (current.productId !== resolved.product.id)
+          throw new Error(
+            "Client provisioning ID belongs to a different application",
+          );
+        resolvedPayload = resolved.payload;
+        entitlements = validateClientEntitlements(
+          resolved.payload,
+          parsed.data.entitlements,
         );
-      const entitlements = validateClientEntitlements(
-        resolved.payload,
-        parsed.data.entitlements,
-      );
-      const selectedCodes = new Set(enabledCodes(entitlements));
-      const moduleIds = resolved.product.modules
-        .filter((module) => selectedCodes.has(module.code))
-        .map((module) => module.id);
+        const selectedCodes = new Set(enabledCodes(entitlements));
+        moduleIds = resolved.product.modules
+          .filter((module) => selectedCodes.has(module.code))
+          .map((module) => module.id);
+      } else {
+        const selectedCodes = new Set(enabledCodes(entitlements));
+        moduleIds = current.product.modules
+          .filter(
+            (module) =>
+              module.enabled &&
+              (selectedCodes.has(module.code) ||
+                parsed.data.moduleIds.includes(module.id)),
+          )
+          .map((module) => module.id);
+      }
+
       const license = await reissueLicenseModules(id, moduleIds, {
         customerName: parsed.data.customerName,
         customerEmail: parsed.data.customerEmail,
         expiresAt: parsed.data.expiresAt,
         entitlements,
+        provisioningId: provId,
       });
       const activations = await prisma.activation.findMany({
         where: { licenseId: license.id },
@@ -230,17 +260,33 @@ licensesRouter.post(
           ),
         ),
       );
-      const autoDelivered =
-        parsed.data.autoActivate &&
-        deliverProvisionedLicense(
-          {
-            clientId: resolved.payload.clientId,
-            tenantId: resolved.payload.tenantId,
-            applicationId: resolved.payload.applicationId,
-            hwid: resolved.payload.hwid,
-          },
-          license.jwtKey,
-        );
+      let autoDelivered = false;
+      if (parsed.data.autoActivate) {
+        if (resolvedPayload) {
+          autoDelivered = deliverProvisionedLicense(
+            {
+              clientId: resolvedPayload.clientId,
+              tenantId: resolvedPayload.tenantId,
+              applicationId: resolvedPayload.applicationId,
+              hwid: resolvedPayload.hwid,
+            },
+            license.jwtKey,
+          );
+        } else {
+          for (const a of activations) {
+            const delivered = deliverProvisionedLicense(
+              {
+                clientId: a.clientId,
+                tenantId: license.product.tenant.publicId,
+                applicationId: license.product.publicId,
+                hwid: "",
+              },
+              license.jwtKey,
+            );
+            if (delivered) autoDelivered = true;
+          }
+        }
+      }
       await audit(req, {
         action: "LICENSE_MODULES_REISSUED",
         entityType: "License",
@@ -299,13 +345,26 @@ licensesRouter.post(
     await Promise.all(
       license.activations.map(async (a) => {
         const live = registry.get(a.clientId);
+        if (parsed.data.status !== "ACTIVE") {
+          await pushLicenseEvent(
+            a.clientId,
+            "REVALIDATE_NOW",
+            parsed.data.reason,
+          );
+        }
         const delivered = await pushLicenseEvent(
           a.clientId,
           event,
           parsed.data.reason,
         );
-        if (parsed.data.status !== "ACTIVE" && live)
-          setTimeout(() => live.socket.destroy(), 250);
+        if (parsed.data.status !== "ACTIVE" && live) {
+          setTimeout(() => {
+            if (!live.socket.destroyed) {
+              live.socket.end();
+              setTimeout(() => live.socket.destroy(), 500);
+            }
+          }, 500);
+        }
         return delivered;
       }),
     );
