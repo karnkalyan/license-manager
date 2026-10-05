@@ -20,8 +20,8 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
     const claims = await verifyAdminToken(token);
     const user = await prisma.adminUser.findUnique({ where: { id: claims.id } });
-    if (!user || user.tokenVersion !== claims.tokenVersion) return res.status(401).json({ error: 'Unauthorized' });
-    req.admin = { id: user.id, username: user.username, role: user.role };
+    if (!user || !user.isActive || user.tokenVersion !== claims.tokenVersion) return res.status(401).json({ error: 'Unauthorized' });
+    req.admin = { id: user.id, username: user.username, role: user.role, tenantId: user.tenantId };
     const rotationAllowed = req.originalUrl.startsWith('/api/auth/me') || req.originalUrl.startsWith('/api/auth/change-password') || req.originalUrl.startsWith('/api/auth/logout');
     if (user.forcePasswordChange && !rotationAllowed) {
       return res.status(403).json({ code: 'PASSWORD_CHANGE_REQUIRED', error: 'Password change required before administration is enabled' });

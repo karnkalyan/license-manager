@@ -32,8 +32,9 @@ const includeLicense = {
 licensesRouter.get("/", async (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const licenses = await prisma.license.findMany({
-    where: q
-      ? {
+    where: {
+      ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}),
+      ...(q ? {
           OR: [
             { serial: { contains: q } },
             { customerRef: { contains: q } },
@@ -44,8 +45,8 @@ licensesRouter.get("/", async (req, res) => {
               },
             },
           ],
-        }
-      : undefined,
+        } : {}),
+    },
     include: includeLicense,
     orderBy: { createdAt: "desc" },
     take: 250,
@@ -196,8 +197,8 @@ licensesRouter.post(
     if (!parsed.success)
       return res.status(400).json({ error: "Invalid module selection" });
     try {
-      const current = await prisma.license.findUniqueOrThrow({
-        where: { id },
+      const current = await prisma.license.findFirstOrThrow({
+        where: { id, ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}) },
         include: { product: { include: { tenant: true, modules: true } } },
       });
       const currentMetadata =
@@ -328,8 +329,12 @@ licensesRouter.post(
       .safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ error: "Invalid status" });
+    const permitted = await prisma.license.findFirstOrThrow({
+      where: { id, ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}) },
+      select: { id: true },
+    });
     const license = await prisma.license.update({
-      where: { id },
+      where: { id: permitted.id },
       data: {
         status: parsed.data.status as LicenseStatus,
         revokedAt: parsed.data.status === "REVOKED" ? new Date() : null,
@@ -445,5 +450,31 @@ licensesRouter.post(
       details: { reason: parsed.data.reason },
     });
     res.json(license);
+  },
+);
+
+licensesRouter.delete(
+  "/:id",
+  requireRoles("SUPER_ADMIN", "ADMIN"),
+  async (req, res) => {
+    const id = req.params.id as string;
+    const license = await prisma.license.findFirstOrThrow({
+      where: { id, ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}) },
+      select: { id: true, serial: true, activations: { select: { clientId: true } }, product: { select: { tenantId: true } } },
+    });
+    await Promise.all(license.activations.map(async ({ clientId }) => {
+      const live = registry.get(clientId);
+      await pushLicenseEvent(clientId, "LICENSE_REVOKED", "License deleted by administrator");
+      if (live) setTimeout(() => live.socket.destroy(), 250);
+    }));
+    await prisma.license.delete({ where: { id: license.id } });
+    await audit(req, {
+      action: "LICENSE_DELETED",
+      entityType: "License",
+      entityId: license.id,
+      severity: AuditSeverity.CRITICAL,
+      details: { serial: license.serial, tenantId: license.product.tenantId },
+    });
+    res.json({ ok: true });
   },
 );

@@ -6,7 +6,9 @@ dist
 *.tsbuildinfo
 apps/server/src/generated
 certs/dev/*.pem
-certs/production/*.pem
+certs/production/
+certs/**/*.pem
+*.zip
 secrets/*.txt
 kashtrix-streamops/
 *.log

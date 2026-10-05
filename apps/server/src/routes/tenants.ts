@@ -10,8 +10,8 @@ import { registry } from '../tcp/registry.js';
 export const tenantsRouter = Router();
 tenantsRouter.use(requireAdmin);
 
-tenantsRouter.get('/', async (_req, res) => {
-  const tenants = await prisma.tenant.findMany({ orderBy: { createdAt: 'desc' }, include: { _count: { select: { products: true } } } });
+tenantsRouter.get('/', async (req, res) => {
+  const tenants = await prisma.tenant.findMany({ where: req.admin!.tenantId ? { id: req.admin!.tenantId } : undefined, orderBy: { createdAt: 'desc' }, include: { _count: { select: { products: true } } } });
   res.json(tenants);
 });
 

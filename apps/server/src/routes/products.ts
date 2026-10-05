@@ -8,8 +8,9 @@ import { resolveProvisioningApplication } from "../services/provisioningService.
 export const productsRouter = Router();
 productsRouter.use(requireAdmin);
 
-productsRouter.get("/", async (_req, res) => {
+productsRouter.get("/", async (req, res) => {
   const products = await prisma.product.findMany({
+    where: req.admin!.tenantId ? { tenantId: req.admin!.tenantId } : undefined,
     orderBy: { createdAt: "desc" },
     include: {
       tenant: true,

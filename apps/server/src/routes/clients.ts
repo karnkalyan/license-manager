@@ -15,8 +15,9 @@ import {
 export const clientsRouter = Router();
 clientsRouter.use(requireAdmin);
 
-clientsRouter.get("/", async (_req, res) => {
+clientsRouter.get("/", async (req, res) => {
   const clients = await prisma.activation.findMany({
+    where: req.admin!.tenantId ? { license: { product: { tenantId: req.admin!.tenantId } } } : undefined,
     include: {
       license: {
         include: {
@@ -42,6 +43,9 @@ clientsRouter.post(
   requireRoles("SUPER_ADMIN", "ADMIN", "SUPPORT"),
   async (req, res) => {
     const clientId = req.params.clientId as string;
+    if (req.admin!.tenantId) {
+      await prisma.activation.findFirstOrThrow({ where: { clientId, license: { product: { tenantId: req.admin!.tenantId } } } });
+    }
     let delivered = await pushLicenseEvent(clientId, "REVALIDATE_NOW");
     let reissued = false;
     if (!delivered) {
@@ -113,8 +117,8 @@ clientsRouter.post(
       .safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ error: "Reason is required" });
-    const activation = await prisma.activation.findUniqueOrThrow({
-      where: { clientId },
+    const activation = await prisma.activation.findFirstOrThrow({
+      where: { clientId, ...(req.admin!.tenantId ? { license: { product: { tenantId: req.admin!.tenantId } } } : {}) },
     });
     await prisma.activation.update({
       where: { id: activation.id },
@@ -146,8 +150,9 @@ clientsRouter.post(
   requireRoles("SUPER_ADMIN", "ADMIN"),
   async (req, res) => {
     const clientId = req.params.clientId as string;
+    const permitted = await prisma.activation.findFirstOrThrow({ where: { clientId, ...(req.admin!.tenantId ? { license: { product: { tenantId: req.admin!.tenantId } } } : {}) }, select: { id: true } });
     const activation = await prisma.activation.update({
-      where: { clientId },
+      where: { id: permitted.id },
       data: { state: ClientState.OFFLINE, bannedAt: null, banReason: null },
     });
     await audit(req, {

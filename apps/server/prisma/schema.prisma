@@ -11,6 +11,8 @@ enum UserRole {
   SUPER_ADMIN
   ADMIN
   SUPPORT
+  MONITORING
+  VENDOR
   AUDITOR
 }
 
@@ -44,6 +46,9 @@ model AdminUser {
   username            String     @unique
   passwordHash        String
   role                UserRole   @default(ADMIN)
+  tenantId            String?
+  tenant              Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  isActive             Boolean    @default(true)
   forcePasswordChange Boolean    @default(false)
   failedLoginCount    Int        @default(0)
   tokenVersion        Int        @default(0)
@@ -52,6 +57,9 @@ model AdminUser {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   auditLogs           AuditLog[]
+
+  @@index([tenantId])
+  @@index([role, isActive])
 }
 
 model Tenant {
@@ -64,6 +72,8 @@ model Tenant {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   products    Product[]
+  users       AdminUser[]
+  auditLogs   AuditLog[]
 
   @@index([status])
 }
@@ -170,6 +180,8 @@ model AuditLog {
   id         BigInt        @id @default(autoincrement())
   actorId    String?
   actor      AdminUser?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  tenantId   String?
+  tenant     Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   action     String
   entityType String
   entityId   String?
@@ -183,4 +195,5 @@ model AuditLog {
   @@index([createdAt])
   @@index([entityType, entityId])
   @@index([action])
+  @@index([tenantId, createdAt])
 }

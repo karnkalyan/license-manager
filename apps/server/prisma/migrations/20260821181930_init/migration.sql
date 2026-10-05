@@ -1,3 +1,8 @@
+-- WAMP installations may default to MyISAM, whose 1000-byte index limit is
+-- too small for the utf8mb4 compound keys below. This schema requires InnoDB
+-- for transactional writes, foreign keys, and modern index limits.
+SET default_storage_engine=InnoDB;
+
 -- CreateTable
 CREATE TABLE `AdminUser` (
     `id` VARCHAR(191) NOT NULL,

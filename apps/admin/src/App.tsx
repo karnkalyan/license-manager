@@ -8,6 +8,8 @@ import {
   Copy,
   Cpu,
   FileClock,
+  Eye,
+  EyeOff,
   KeyRound,
   Layers3,
   LayoutDashboard,
@@ -19,6 +21,8 @@ import {
   Search,
   ShieldCheck,
   Sun,
+  Trash2,
+  UserCog,
   Users,
   XCircle,
   Zap,
@@ -121,16 +125,37 @@ type Audit = {
   createdAt: string;
   actor?: { username: string };
 };
+type SessionUser = {
+  id: string;
+  username: string;
+  role: "SUPER_ADMIN" | "ADMIN" | "SUPPORT" | "MONITORING" | "VENDOR" | "AUDITOR";
+  tenantId?: string | null;
+  tenant?: { id: string; name: string; code: string } | null;
+  forcePasswordChange: boolean;
+};
+type ManagedUser = Omit<SessionUser, "forcePasswordChange"> & {
+  isActive: boolean;
+  forcePasswordChange: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+};
 type View =
-  "dashboard" | "licenses" | "clients" | "tenants" | "applications" | "audit";
+  | "dashboard"
+  | "licenses"
+  | "clients"
+  | "tenants"
+  | "applications"
+  | "users"
+  | "audit";
 
 function Login({
   onLogin,
 }: {
-  onLogin: (forcePasswordChange: boolean) => void;
+  onLogin: (user: SessionUser) => void;
 }) {
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState(import.meta.env.DEV ? "admin" : "");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   async function submit(e: React.FormEvent) {
@@ -138,11 +163,11 @@ function Login({
     setLoading(true);
     setError("");
     try {
-      const r = await api<{ user: { forcePasswordChange: boolean } }>(
+      const r = await api<{ user: SessionUser }>(
         "/auth/login",
         { method: "POST", body: JSON.stringify({ username, password }) },
       );
-      onLogin(r.user.forcePasswordChange);
+      onLogin(r.user);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -151,42 +176,76 @@ function Login({
   }
   return (
     <div className="login-shell">
-      <div className="login-card">
-        <div className="brand-mark">
-          <ShieldCheck size={22} />
-        </div>
-        <div>
-          <h1>License Control</h1>
-          <p>Multi-tenant entitlement console</p>
-        </div>
-        <form onSubmit={submit}>
-          <label>
-            Username
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </label>
-          {error && <div className="error">{error}</div>}
-          <button className="btn primary wide" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-        {import.meta.env.DEV && (
-          <small>
-            Development only: admin / 123456 · password rotation is mandatory.
-          </small>
-        )}
+      <div className="login-layout">
+        <aside className="login-visual" aria-label="Kashtrix License Manager">
+          <div className="login-brand">
+            <div className="brand-mark small"><ShieldCheck size={18} /></div>
+            <div><strong>Kashtrix</strong><span>License Manager</span></div>
+          </div>
+          <div className="login-visual-copy">
+            <span className="login-eyebrow">Enterprise license operations</span>
+            <h2>Control access.<br />Protect every deployment.</h2>
+            <p>One secure workspace for vendor-isolated licenses, application clients, entitlements, and operational oversight.</p>
+          </div>
+          <div className="login-trust-list">
+            <div><UserCog size={17} /><span><strong>Role-based access</strong><small>Purpose-built controls for every team</small></span></div>
+            <div><Building2 size={17} /><span><strong>Vendor isolation</strong><small>Strict separation across organizations</small></span></div>
+            <div><Activity size={17} /><span><strong>Live monitoring</strong><small>Real-time client and license health</small></span></div>
+          </div>
+          <div className="login-visual-footer">Kashtrix Technologies · Secure licensing infrastructure</div>
+        </aside>
+
+        <section className="login-panel">
+          <div className="login-card">
+            <div className="login-mobile-brand">
+              <div className="brand-mark small"><ShieldCheck size={18} /></div>
+              <div><strong>Kashtrix</strong><span>License Manager</span></div>
+            </div>
+            <span className="login-eyebrow">Secure administration</span>
+            <h1>Welcome back</h1>
+            <p>Sign in with your authorized organization account.</p>
+            <form onSubmit={submit}>
+              <label htmlFor="login-username">Username</label>
+              <div className="login-input">
+                <Users size={17} aria-hidden="true" />
+                <input
+                  id="login-username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  placeholder="Enter your username"
+                  required
+                  autoFocus
+                />
+              </div>
+              <label htmlFor="login-password">Password</label>
+              <div className="login-input">
+                <KeyRound size={17} aria-hidden="true" />
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button type="button" className="login-input-action" onClick={() => setShowPassword((shown) => !shown)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {error ? <div className="error" role="alert">{error}</div> : null}
+              <button className="btn primary wide login-submit" disabled={loading}>
+                {loading ? "Signing in…" : "Sign in securely"}
+              </button>
+            </form>
+            <div className="login-security-note"><ShieldCheck size={15} /><span>Protected by encrypted sessions and role-based authorization.</span></div>
+            {import.meta.env.DEV ? (
+              <div className="login-dev-note"><strong>Development access</strong><span>admin / 123456 · Password rotation required</span></div>
+            ) : null}
+          </div>
+          <p className="login-help">Need access? Contact your Kashtrix License Manager administrator.</p>
+        </section>
       </div>
     </div>
   );
@@ -293,11 +352,41 @@ function ShortId({ value }: { value: string }) {
   );
 }
 
+const PAGE_SIZE = 10;
+
+function usePagination<T>(items: T[], pageSize = PAGE_SIZE) {
+  const [page, setPage] = useState(1);
+  const pages = Math.max(1, Math.ceil(items.length / pageSize));
+  useEffect(() => setPage(1), [items.length, pageSize]);
+  const safePage = Math.min(page, pages);
+  return {
+    page: safePage,
+    pages,
+    total: items.length,
+    items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    setPage,
+  };
+}
+
+function Pagination({ page, pages, total, setPage }: { page: number; pages: number; total: number; setPage: (page: number) => void }) {
+  if (!total) return null;
+  return (
+    <div className="pagination" aria-label="Table pagination">
+      <span>{total} records · Page {page} of {pages}</span>
+      <div>
+        <button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
+        <button className="btn" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [mustChange, setMustChange] = useState<boolean | null>(null);
+  const [session, setSession] = useState<SessionUser | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">(
-    () => (localStorage.getItem("lm_theme") as "light" | "dark") || "dark",
+    () => (localStorage.getItem("lm_theme") as "light" | "dark") || "light",
   );
   const [view, setView] = useState<View>("dashboard");
   const [mobile, setMobile] = useState(false);
@@ -309,10 +398,12 @@ export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState("");
   const [showLicense, setShowLicense] = useState(false);
   const [showTenant, setShowTenant] = useState(false);
   const [showApp, setShowApp] = useState(false);
+  const [showUser, setShowUser] = useState(false);
   const [banTarget, setBanTarget] = useState<Activation | null>(null);
   const [editLicense, setEditLicense] = useState<License | null>(null);
 
@@ -324,33 +415,38 @@ export default function App() {
     const expired = () => {
       setAuthenticated(false);
       setMustChange(false);
+      setSession(null);
       setShowLicense(false);
     };
     window.addEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
     return () => window.removeEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
   }, []);
   useEffect(() => {
-    api<{ forcePasswordChange: boolean }>("/auth/me")
+    api<SessionUser>("/auth/me")
       .then((u) => {
         setAuthenticated(true);
         setMustChange(u.forcePasswordChange);
+        setSession(u);
       })
       .catch(() => {
         setAuthenticated(false);
         setMustChange(false);
+        setSession(null);
       });
   }, []);
   async function load() {
     if (authenticated !== true) return;
     setBusy(true);
     try {
-      const [d, l, c, t, p, a] = await Promise.all([
+      const canManageUsers = session?.role === "SUPER_ADMIN" || session?.role === "ADMIN";
+      const [d, l, c, t, p, a, u] = await Promise.all([
         api<Dashboard>("/dashboard"),
         api<License[]>("/licenses"),
         api<Activation[]>("/clients"),
         api<Tenant[]>("/tenants"),
         api<Product[]>("/applications"),
         api<Audit[]>("/audit"),
+        canManageUsers ? api<ManagedUser[]>("/users") : Promise.resolve([]),
       ]);
       setDash(d);
       setLicenses(l);
@@ -358,6 +454,7 @@ export default function App() {
       setTenants(t);
       setProducts(p);
       setAudits(a);
+      setUsers(u);
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Load failed");
     } finally {
@@ -369,14 +466,14 @@ export default function App() {
     void load();
     const id = setInterval(() => void load(), 30000);
     return () => clearInterval(id);
-  }, [authenticated, mustChange]);
+  }, [authenticated, mustChange, session?.role]);
   const shownLicenses = useMemo(
     () =>
       licenses.filter((l) =>
         `${l.serial} ${l.customerRef ?? ""} ${l.product.name} ${l.product.tenant.name} ${l.modules.map((x) => x.module.code).join(" ")}`
           .toLowerCase()
           .includes(search.toLowerCase()),
-      ),
+      ).sort((a, b) => `${a.product.tenant.name}-${a.metadata?.customerName ?? a.customerRef ?? ""}`.localeCompare(`${b.product.tenant.name}-${b.metadata?.customerName ?? b.customerRef ?? ""}`)),
     [licenses, search],
   );
   async function logout() {
@@ -385,6 +482,7 @@ export default function App() {
     } catch {}
     setAuthenticated(false);
     setMustChange(false);
+    setSession(null);
   }
   const done = (message: string) => {
     setToast(message);
@@ -405,20 +503,24 @@ export default function App() {
   if (authenticated === false)
     return (
       <Login
-        onLogin={(force) => {
+        onLogin={(user) => {
           setAuthenticated(true);
-          setMustChange(force);
+          setMustChange(user.forcePasswordChange);
+          setSession(user);
         }}
       />
     );
   if (mustChange) return <ChangePassword onDone={() => setMustChange(false)} />;
 
+  const canAdminister = session?.role === "SUPER_ADMIN" || session?.role === "ADMIN";
+  const canSupport = canAdminister || session?.role === "SUPPORT";
   const nav: [View, string, React.ElementType][] = [
     ["dashboard", "Overview", LayoutDashboard],
     ["licenses", "Licenses", KeyRound],
-    ["clients", "Live clients", Users],
+    ["clients", "Client monitoring", Users],
     ["tenants", "Vendors / tenants", Building2],
     ["applications", "Applications", AppWindow],
+    ...(canAdminister ? ([["users", "Users & roles", UserCog]] as [View, string, React.ElementType][]) : []),
     ["audit", "Audit trail", FileClock],
   ];
   return (
@@ -429,8 +531,8 @@ export default function App() {
             <ShieldCheck size={18} />
           </div>
           <div>
-            <strong>License Control</strong>
-            <span>Tenant + module security</span>
+            <strong>Kashtrix</strong>
+            <span>License Manager</span>
           </div>
         </div>
         <nav>
@@ -460,6 +562,7 @@ export default function App() {
           Sign out
         </button>
       </aside>
+      {mobile ? <button className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setMobile(false)} /> : null}
       <main>
         <header>
           <button
@@ -470,7 +573,7 @@ export default function App() {
           </button>
           <div>
             <h2>{nav.find((n) => n[0] === view)?.[1]}</h2>
-            <p>Application-isolated, module-aware licensing</p>
+            <p>{session?.tenant?.name ?? "Multi-vendor operations"} · {session?.role.replaceAll("_", " ")}</p>
           </div>
           <div className="header-actions">
             <button
@@ -482,7 +585,9 @@ export default function App() {
             <button className="icon" onClick={() => void load()}>
               <RefreshCw size={18} className={busy ? "spin" : ""} />
             </button>
-            <div className="avatar">AD</div>
+            <div className="avatar" title={`${session?.username} · ${session?.role}`}>
+              {session?.username.slice(0, 2).toUpperCase()}
+            </div>
           </div>
         </header>
         <section className="content">
@@ -501,6 +606,7 @@ export default function App() {
               search={search}
               setSearch={setSearch}
               onCreate={() => setShowLicense(true)}
+              canManage={canAdminister}
               onEditModules={setEditLicense}
               onStatus={async (id, status) => {
                 await api(`/licenses/${id}/status`, {
@@ -515,11 +621,18 @@ export default function App() {
                 });
                 done(`License ${status.toLowerCase()}`);
               }}
+              onDelete={async (license) => {
+                if (!window.confirm(`Permanently delete license ${license.serial}? This also removes its activations.`)) return;
+                await api(`/licenses/${license.id}`, { method: "DELETE" });
+                done("License deleted");
+              }}
             />
           )}
           {view === "clients" && (
             <ClientsView
               clients={clients}
+              canSupport={canSupport}
+              canManage={canAdminister}
               onBan={async (c) => {
                 if (c.state === "BANNED") {
                   await api(`/clients/${c.clientId}/unban`, { method: "POST" });
@@ -537,6 +650,7 @@ export default function App() {
           {view === "tenants" && (
             <TenantsView
               tenants={tenants}
+              canManage={canAdminister}
               onCreate={() => setShowTenant(true)}
               onStatus={async (t, status) => {
                 await api(`/tenants/${t.id}/status`, {
@@ -550,7 +664,24 @@ export default function App() {
           {view === "applications" && (
             <ApplicationsView
               products={products}
+              canManage={canAdminister}
               onCreate={() => setShowApp(true)}
+            />
+          )}
+          {view === "users" && canAdminister && (
+            <UsersView
+              users={users}
+              currentUserId={session?.id ?? ""}
+              onCreate={() => setShowUser(true)}
+              onToggle={async (user) => {
+                await api(`/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ isActive: !user.isActive }) });
+                done(`User ${user.isActive ? "disabled" : "enabled"}`);
+              }}
+              onDelete={async (user) => {
+                if (!window.confirm(`Delete user ${user.username}?`)) return;
+                await api(`/users/${user.id}`, { method: "DELETE" });
+                done("User deleted");
+              }}
             />
           )}
           {view === "audit" && <AuditView rows={audits} />}
@@ -572,6 +703,17 @@ export default function App() {
           onCreated={() => {
             setShowApp(false);
             done("Application created");
+          }}
+        />
+      )}
+      {showUser && (
+        <CreateUser
+          tenants={tenants}
+          isSuperAdmin={session?.role === "SUPER_ADMIN"}
+          onClose={() => setShowUser(false)}
+          onCreated={() => {
+            setShowUser(false);
+            done("User created");
           }}
         />
       )}
@@ -739,16 +881,21 @@ function LicensesView({
   search,
   setSearch,
   onCreate,
+  canManage,
   onEditModules,
   onStatus,
+  onDelete,
 }: {
   licenses: License[];
   search: string;
   setSearch: (s: string) => void;
   onCreate: () => void;
+  canManage: boolean;
   onEditModules: (l: License) => void;
   onStatus: (id: string, s: string) => void;
+  onDelete: (license: License) => void;
 }) {
+  const pagination = usePagination(licenses);
   return (
     <div className="panel table-panel">
       <div className="toolbar">
@@ -760,16 +907,19 @@ function LicensesView({
             placeholder="Search serial, vendor, app, module or customer"
           />
         </div>
-        <button className="btn primary" onClick={onCreate}>
-          <Plus size={16} />
-          Generate license
-        </button>
+        {canManage ? (
+          <button className="btn primary" onClick={onCreate}>
+            <Plus size={16} />
+            Add client license
+          </button>
+        ) : null}
       </div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
               <th>License</th>
+              <th>Client / customer</th>
               <th>Vendor / application</th>
               <th>Modules</th>
               <th>Status</th>
@@ -778,20 +928,23 @@ function LicensesView({
             </tr>
           </thead>
           <tbody>
-            {licenses.map((l) => (
+            {pagination.items.map((l) => (
               <tr key={l.id}>
-                <td>
+                <td data-label="License">
                   <strong className="mono">{l.serial}</strong>
                   <span>
-                    {l.customerRef || "No customer reference"} · entitlement v
-                    {l.entitlementVersion}
+                    Entitlement v{l.entitlementVersion} · {new Date(l.createdAt).toLocaleDateString()}
                   </span>
                 </td>
-                <td>
+                <td data-label="Client / customer">
+                  <strong>{l.metadata?.customerName || l.customerRef || "Unassigned client"}</strong>
+                  <span>{l.metadata?.customerEmail || "No contact email"}</span>
+                </td>
+                <td data-label="Vendor / application">
                   <strong>{l.product.tenant.name}</strong>
                   <span>{l.product.name}</span>
                 </td>
-                <td>
+                <td data-label="Modules">
                   <div className="chips">
                     {l.modules.map((x) => (
                       <span className="chip" key={x.module.id}>
@@ -803,18 +956,16 @@ function LicensesView({
                     )}
                   </div>
                 </td>
-                <td>
+                <td data-label="Status">
                   <Badge value={l.status} />
                 </td>
-                <td>
+                <td data-label="Seats">
                   {l.activations.length}/{l.maxActivations}
                 </td>
-                <td>
+                <td data-label="Actions">
                   <div className="row-actions">
-                    <button onClick={() => onEditModules(l)}>
-                      Details / modules
-                    </button>
-                    {l.status === "ACTIVE" ? (
+                    {canManage ? <button onClick={() => onEditModules(l)}>Details / modules</button> : null}
+                    {canManage && (l.status === "ACTIVE" ? (
                       <button
                         className="danger-link"
                         onClick={() => onStatus(l.id, "REVOKED")}
@@ -825,7 +976,12 @@ function LicensesView({
                       <button onClick={() => onStatus(l.id, "ACTIVE")}>
                         Restore
                       </button>
-                    )}
+                    ))}
+                    {canManage ? (
+                      <button className="danger-link icon-link" title="Delete license" onClick={() => onDelete(l)}>
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -834,19 +990,25 @@ function LicensesView({
         </table>
         {!licenses.length && <Empty text="No licenses match this search" />}
       </div>
+      <Pagination {...pagination} />
     </div>
   );
 }
 
 function ClientsView({
   clients,
+  canSupport,
+  canManage,
   onBan,
   onRevalidate,
 }: {
   clients: Activation[];
+  canSupport: boolean;
+  canManage: boolean;
   onBan: (c: Activation) => void;
   onRevalidate: (c: Activation) => void;
 }) {
+  const pagination = usePagination(clients);
   return (
     <div className="panel table-panel">
       <div className="panel-head">
@@ -872,20 +1034,20 @@ function ClientsView({
             </tr>
           </thead>
           <tbody>
-            {clients.map((c) => (
+            {pagination.items.map((c) => (
               <tr key={c.id}>
-                <td>
+                <td data-label="Client">
                   <strong className="mono">{c.clientId}</strong>
                   <span>
                     {c.platform || "unknown"} ·{" "}
                     {c.appVersion || "version unknown"}
                   </span>
                 </td>
-                <td>
+                <td data-label="Vendor / app">
                   <strong>{c.license.product.tenant.name}</strong>
                   <span>{c.license.product.name}</span>
                 </td>
-                <td>
+                <td data-label="Modules">
                   <div className="chips">
                     {c.license.modules.map((x) => (
                       <span className="chip" key={x.module.id}>
@@ -894,7 +1056,7 @@ function ClientsView({
                     ))}
                   </div>
                 </td>
-                <td>
+                <td data-label="Status">
                   <Badge
                     value={
                       c.socketOnline
@@ -905,16 +1067,18 @@ function ClientsView({
                     }
                   />
                 </td>
-                <td>{relative(c.lastHeartbeatAt)}</td>
-                <td>
+                <td data-label="Heartbeat">{relative(c.lastHeartbeatAt)}</td>
+                <td data-label="Actions">
                   <div className="row-actions">
-                    <button onClick={() => onRevalidate(c)}>Revalidate</button>
-                    <button
-                      className={c.state === "BANNED" ? "" : "danger-link"}
-                      onClick={() => onBan(c)}
-                    >
-                      {c.state === "BANNED" ? "Unban" : "Ban"}
-                    </button>
+                    {canSupport ? <button onClick={() => onRevalidate(c)}>Revalidate</button> : null}
+                    {canManage ? (
+                      <button
+                        className={c.state === "BANNED" ? "" : "danger-link"}
+                        onClick={() => onBan(c)}
+                      >
+                        {c.state === "BANNED" ? "Unban" : "Ban"}
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -923,16 +1087,19 @@ function ClientsView({
         </table>
         {!clients.length && <Empty text="No registered clients" />}
       </div>
+      <Pagination {...pagination} />
     </div>
   );
 }
 
 function TenantsView({
   tenants,
+  canManage,
   onCreate,
   onStatus,
 }: {
   tenants: Tenant[];
+  canManage: boolean;
   onCreate: () => void;
   onStatus: (t: Tenant, status: string) => void;
 }) {
@@ -946,10 +1113,10 @@ function TenantsView({
             licenses cannot cross it.
           </p>
         </div>
-        <button className="btn primary" onClick={onCreate}>
+        {canManage ? <button className="btn primary" onClick={onCreate}>
           <Plus size={16} />
           Add vendor
-        </button>
+        </button> : null}
       </div>
       <div className="cards">
         {tenants.map((t) => (
@@ -964,14 +1131,14 @@ function TenantsView({
               <span>Applications</span>
               <strong>{t._count?.products ?? 0}</strong>
             </div>
-            <button
+            {canManage ? <button
               className={`btn wide ${t.status === "ACTIVE" ? "" : "primary"}`}
               onClick={() =>
                 onStatus(t, t.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE")
               }
             >
               {t.status === "ACTIVE" ? "Suspend tenant" : "Activate tenant"}
-            </button>
+            </button> : <Badge value={t.status} />}
           </div>
         ))}
       </div>
@@ -981,9 +1148,11 @@ function TenantsView({
 
 function ApplicationsView({
   products,
+  canManage,
   onCreate,
 }: {
   products: Product[];
+  canManage: boolean;
   onCreate: () => void;
 }) {
   return (
@@ -993,10 +1162,10 @@ function ApplicationsView({
           <h3>Applications and modules</h3>
           <p>Module catalogs are synchronized from client provisioning IDs.</p>
         </div>
-        <button className="btn primary" onClick={onCreate}>
+        {canManage ? <button className="btn primary" onClick={onCreate}>
           <Plus size={16} />
           Add application
-        </button>
+        </button> : null}
       </div>
       <div className="cards">
         {products.map((p) => (
@@ -1038,6 +1207,51 @@ function ApplicationsView({
   );
 }
 
+function UsersView({ users, currentUserId, onCreate, onToggle, onDelete }: {
+  users: ManagedUser[];
+  currentUserId: string;
+  onCreate: () => void;
+  onToggle: (user: ManagedUser) => void;
+  onDelete: (user: ManagedUser) => void;
+}) {
+  const pagination = usePagination(users);
+  return (
+    <div className="panel table-panel">
+      <div className="toolbar">
+        <div>
+          <h3>Users and role-based access</h3>
+          <p>Administrators manage access; vendor accounts are isolated to one vendor.</p>
+        </div>
+        <button className="btn primary" onClick={onCreate}><Plus size={16} /> Add user</button>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Role</th><th>Vendor scope</th><th>Status</th><th>Last sign in</th><th></th></tr></thead>
+          <tbody>
+            {pagination.items.map((user) => (
+              <tr key={user.id}>
+                <td data-label="User"><strong>{user.username}</strong><span>Created {new Date(user.createdAt).toLocaleDateString()}</span></td>
+                <td data-label="Role"><Badge value={user.role} /></td>
+                <td data-label="Vendor scope"><strong>{user.tenant?.name ?? "All vendors"}</strong><span>{user.tenant?.code ?? "Global access"}</span></td>
+                <td data-label="Status"><Badge value={user.isActive ? "ACTIVE" : "SUSPENDED"} /></td>
+                <td data-label="Last sign in">{relative(user.lastLoginAt)}</td>
+                <td data-label="Actions">
+                  <div className="row-actions">
+                    <button disabled={user.id === currentUserId} onClick={() => onToggle(user)}>{user.isActive ? "Disable" : "Enable"}</button>
+                    <button disabled={user.id === currentUserId} className="danger-link" onClick={() => onDelete(user)}><Trash2 size={14} /> Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!users.length && <Empty text="No users found" />}
+      </div>
+      <Pagination {...pagination} />
+    </div>
+  );
+}
+
 function AuditView({ rows }: { rows: Audit[] }) {
   return (
     <div className="panel table-panel">
@@ -1053,9 +1267,11 @@ function AuditView({ rows }: { rows: Audit[] }) {
   );
 }
 function AuditTable({ rows }: { rows: Audit[] }) {
+  const pagination = usePagination(rows);
   return (
-    <div className="table-wrap">
-      <table>
+    <>
+      <div className="table-wrap">
+        <table>
         <thead>
           <tr>
             <th>Event</th>
@@ -1066,23 +1282,25 @@ function AuditTable({ rows }: { rows: Audit[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {pagination.items.map((r) => (
             <tr key={String(r.id)}>
-              <td>
+              <td data-label="Event">
                 <strong>{r.action.replaceAll("_", " ")}</strong>
               </td>
-              <td>{r.entityType}</td>
-              <td>{r.actor?.username || "System"}</td>
-              <td>
+              <td data-label="Entity">{r.entityType}</td>
+              <td data-label="Actor">{r.actor?.username || "System"}</td>
+              <td data-label="Severity">
                 <Badge value={r.severity} />
               </td>
-              <td>{relative(r.createdAt)}</td>
+              <td data-label="Time">{relative(r.createdAt)}</td>
             </tr>
           ))}
         </tbody>
-      </table>
-      {!rows.length && <Empty text="No audit entries yet" />}
-    </div>
+        </table>
+        {!rows.length && <Empty text="No audit entries yet" />}
+      </div>
+      <Pagination {...pagination} />
+    </>
   );
 }
 function Empty({ text }: { text: string }) {
@@ -1209,6 +1427,64 @@ function CapabilitySelector({
         ),
       )}
     </div>
+  );
+}
+
+function CreateUser({ tenants, isSuperAdmin, onClose, onCreated }: {
+  tenants: Tenant[];
+  isSuperAdmin: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<SessionUser["role"]>("SUPPORT");
+  const [tenantId, setTenantId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      await api("/users", { method: "POST", body: JSON.stringify({ username, password, role, tenantId: role === "VENDOR" ? tenantId : null }) });
+      onCreated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "User creation failed");
+      setLoading(false);
+    }
+  }
+  return (
+    <ModalFrame title="Add user" subtitle="Assign operational access and vendor visibility" onClose={onClose} compact>
+      <form className="form-grid" onSubmit={submit}>
+        <label>Username<input required minLength={3} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="name or email alias" /></label>
+        <label>Temporary password<input required type="password" minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="12+ characters" /></label>
+        <label className="full">Role
+          <select value={role} onChange={(e) => setRole(e.target.value as SessionUser["role"])}>
+            {isSuperAdmin ? <option value="SUPER_ADMIN">Super admin</option> : null}
+            <option value="ADMIN">Admin</option>
+            <option value="SUPPORT">Support</option>
+            <option value="MONITORING">Monitoring</option>
+            <option value="AUDITOR">Auditor</option>
+            <option value="VENDOR">Vendor (own licenses only)</option>
+          </select>
+        </label>
+        {role === "VENDOR" ? (
+          <label className="full">Vendor
+            <select required value={tenantId} onChange={(e) => setTenantId(e.target.value)}>
+              <option value="">Select vendor</option>
+              {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} ({tenant.code})</option>)}
+            </select>
+          </label>
+        ) : null}
+        <p className="form-help full">The user must change the temporary password at first sign in.</p>
+        {error ? <div className="error full">{error}</div> : null}
+        <div className="modal-actions full">
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={loading}>{loading ? "Creating…" : "Create user"}</button>
+        </div>
+      </form>
+    </ModalFrame>
   );
 }
 

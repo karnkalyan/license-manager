@@ -17,6 +17,7 @@ export async function audit(req: Request | undefined, data: {
   await prisma.auditLog.create({
     data: {
       actorId: req?.admin?.id,
+      tenantId: req?.admin?.tenantId,
       action: data.action,
       entityType: data.entityType,
       entityId: data.entityId,

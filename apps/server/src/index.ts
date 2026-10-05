@@ -14,6 +14,7 @@ import { licensesRouter } from './routes/licenses.js';
 import { clientsRouter } from './routes/clients.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { auditRouter } from './routes/audit.js';
+import { usersRouter } from './routes/users.js';
 import { startTcpServer } from './tcp/server.js';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/licenses', licensesRouter);
 app.use('/api/clients', clientsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/audit', auditRouter);
+app.use('/api/users', usersRouter);
 
 const adminDist = resolve(repoRoot, 'apps/admin/dist');
 if (config.NODE_ENV === 'production' && existsSync(adminDist)) {
