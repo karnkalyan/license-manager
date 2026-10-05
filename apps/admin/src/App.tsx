@@ -1,385 +1,53 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AppWindow,
-  Ban,
   Building2,
-  CheckCircle2,
-  Copy,
-  Cpu,
   FileClock,
-  Eye,
-  EyeOff,
   KeyRound,
-  Layers3,
   LayoutDashboard,
   LogOut,
   Menu,
   Moon,
   Plus,
   RefreshCw,
-  Search,
   ShieldCheck,
   Sun,
-  Trash2,
   UserCog,
   Users,
-  XCircle,
-  Zap,
+  X,
 } from "lucide-react";
 import { ADMIN_UNAUTHORIZED_EVENT, api } from "./lib/api";
-
-type Dashboard = {
-  licenses: number;
-  active: number;
-  revoked: number;
-  activations: number;
-  online: number;
-  recentAudits: Audit[];
-};
-type Tenant = {
-  id: string;
-  publicId: string;
-  code: string;
-  name: string;
-  description?: string;
-  status: string;
-  _count?: { products: number };
-};
-type Module = {
-  id: string;
-  publicId: string;
-  code: string;
-  name: string;
-  description?: string;
-  enabled: boolean;
-};
-type Capability = {
-  code: string;
-  name: string;
-  description?: string;
-  type: "boolean" | "integer";
-  min?: number;
-  max?: number;
-  step?: number;
-  defaultValue?: boolean | number;
-  unit?: string;
-};
-type Product = {
-  id: string;
-  publicId: string;
-  code: string;
-  name: string;
-  description?: string;
-  tenant: Tenant;
-  modules: Module[];
-  capabilities?: Capability[];
-  _count?: { licenses: number };
-};
-type Activation = {
-  id: string;
-  clientId: string;
-  state: string;
-  socketOnline?: boolean;
-  provisioningOnline?: boolean;
-  platform?: string;
-  appVersion?: string;
-  lastHeartbeatAt?: string;
-  tenantPublicId: string;
-  productPublicId: string;
-  license: {
-    id: string;
-    serial: string;
-    status: string;
-    product: { name: string; publicId: string; tenant: Tenant };
-    modules: { module: Module }[];
-  };
-};
-type License = {
-  id: string;
-  serial: string;
-  customerRef?: string;
-  metadata?: {
-    customerName?: string;
-    customerEmail?: string;
-    entitlements?: Record<string, boolean | number>;
-    provisioningId?: string;
-  };
-  status: string;
-  jwtKey?: string;
-  autoDelivered?: boolean;
-  autoActivationRequested?: boolean;
-  maxActivations: number;
-  entitlementVersion: number;
-  expiresAt?: string;
-  createdAt: string;
-  product: Product;
-  modules: { module: Module }[];
-  activations: Activation[];
-};
-type Audit = {
-  id: string;
-  action: string;
-  entityType: string;
-  severity: string;
-  createdAt: string;
-  actor?: { username: string };
-};
-type SessionUser = {
-  id: string;
-  username: string;
-  role: "SUPER_ADMIN" | "ADMIN" | "SUPPORT" | "MONITORING" | "VENDOR" | "AUDITOR";
-  tenantId?: string | null;
-  tenant?: { id: string; name: string; code: string } | null;
-  forcePasswordChange: boolean;
-};
-type ManagedUser = Omit<SessionUser, "forcePasswordChange"> & {
-  isActive: boolean;
-  forcePasswordChange: boolean;
-  lastLoginAt?: string;
-  createdAt: string;
-};
-type View =
-  | "dashboard"
-  | "licenses"
-  | "clients"
-  | "tenants"
-  | "applications"
-  | "users"
-  | "audit";
-
-function Login({
-  onLogin,
-}: {
-  onLogin: (user: SessionUser) => void;
-}) {
-  const [username, setUsername] = useState(import.meta.env.DEV ? "admin" : "");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const r = await api<{ user: SessionUser }>(
-        "/auth/login",
-        { method: "POST", body: JSON.stringify({ username, password }) },
-      );
-      onLogin(r.user);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-  return (
-    <div className="login-shell">
-      <div className="login-layout">
-        <aside className="login-visual" aria-label="Kashtrix License Manager">
-          <div className="login-brand">
-            <div className="brand-mark small"><ShieldCheck size={18} /></div>
-            <div><strong>Kashtrix</strong><span>License Manager</span></div>
-          </div>
-          <div className="login-visual-copy">
-            <span className="login-eyebrow">Enterprise license operations</span>
-            <h2>Control access.<br />Protect every deployment.</h2>
-            <p>One secure workspace for vendor-isolated licenses, application clients, entitlements, and operational oversight.</p>
-          </div>
-          <div className="login-trust-list">
-            <div><UserCog size={17} /><span><strong>Role-based access</strong><small>Purpose-built controls for every team</small></span></div>
-            <div><Building2 size={17} /><span><strong>Vendor isolation</strong><small>Strict separation across organizations</small></span></div>
-            <div><Activity size={17} /><span><strong>Live monitoring</strong><small>Real-time client and license health</small></span></div>
-          </div>
-          <div className="login-visual-footer">Kashtrix Technologies · Secure licensing infrastructure</div>
-        </aside>
-
-        <section className="login-panel">
-          <div className="login-card">
-            <div className="login-mobile-brand">
-              <div className="brand-mark small"><ShieldCheck size={18} /></div>
-              <div><strong>Kashtrix</strong><span>License Manager</span></div>
-            </div>
-            <span className="login-eyebrow">Secure administration</span>
-            <h1>Welcome back</h1>
-            <p>Sign in with your authorized organization account.</p>
-            <form onSubmit={submit}>
-              <label htmlFor="login-username">Username</label>
-              <div className="login-input">
-                <Users size={17} aria-hidden="true" />
-                <input
-                  id="login-username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
-                  placeholder="Enter your username"
-                  required
-                  autoFocus
-                />
-              </div>
-              <label htmlFor="login-password">Password</label>
-              <div className="login-input">
-                <KeyRound size={17} aria-hidden="true" />
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button type="button" className="login-input-action" onClick={() => setShowPassword((shown) => !shown)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              {error ? <div className="error" role="alert">{error}</div> : null}
-              <button className="btn primary wide login-submit" disabled={loading}>
-                {loading ? "Signing in…" : "Sign in securely"}
-              </button>
-            </form>
-            <div className="login-security-note"><ShieldCheck size={15} /><span>Protected by encrypted sessions and role-based authorization.</span></div>
-            {import.meta.env.DEV ? (
-              <div className="login-dev-note"><strong>Development access</strong><span>admin / 123456 · Password rotation required</span></div>
-            ) : null}
-          </div>
-          <p className="login-help">Need access? Contact your Kashtrix License Manager administrator.</p>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function ChangePassword({ onDone }: { onDone: () => void }) {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (newPassword !== confirm) {
-      setError("New passwords do not match");
-      return;
-    }
-    setLoading(true);
-    try {
-      await api<{ ok: boolean }>("/auth/change-password", {
-        method: "POST",
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      onDone();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Password change failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-  return (
-    <div className="login-shell">
-      <div className="login-card">
-        <div className="brand-mark">
-          <KeyRound size={22} />
-        </div>
-        <div>
-          <h1>Change bootstrap password</h1>
-          <p>
-            Administration remains locked until the development password is
-            replaced.
-          </p>
-        </div>
-        <form onSubmit={submit}>
-          <label>
-            Current password
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </label>
-          <label>
-            New password
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              minLength={12}
-            />
-          </label>
-          <label>
-            Confirm new password
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              minLength={12}
-            />
-          </label>
-          {error && <div className="error">{error}</div>}
-          <button className="btn primary wide" disabled={loading}>
-            {loading ? "Updating…" : "Set secure password"}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function Badge({ value }: { value: string }) {
-  return (
-    <span className={`badge ${value.toLowerCase()}`}>
-      {value.replaceAll("_", " ")}
-    </span>
-  );
-}
-function relative(d?: string) {
-  if (!d) return "—";
-  const n = Date.now() - new Date(d).getTime();
-  const m = Math.floor(n / 60000);
-  if (m < 1) return "now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-function ShortId({ value }: { value: string }) {
-  return (
-    <span className="mono id-text" title={value}>
-      {value}
-    </span>
-  );
-}
-
-const PAGE_SIZE = 10;
-
-function usePagination<T>(items: T[], pageSize = PAGE_SIZE) {
-  const [page, setPage] = useState(1);
-  const pages = Math.max(1, Math.ceil(items.length / pageSize));
-  useEffect(() => setPage(1), [items.length, pageSize]);
-  const safePage = Math.min(page, pages);
-  return {
-    page: safePage,
-    pages,
-    total: items.length,
-    items: items.slice((safePage - 1) * pageSize, safePage * pageSize),
-    setPage,
-  };
-}
-
-function Pagination({ page, pages, total, setPage }: { page: number; pages: number; total: number; setPage: (page: number) => void }) {
-  if (!total) return null;
-  return (
-    <div className="pagination" aria-label="Table pagination">
-      <span>{total} records · Page {page} of {pages}</span>
-      <div>
-        <button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-        <button className="btn" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
-      </div>
-    </div>
-  );
-}
+import type {
+  Activation,
+  Audit,
+  Dashboard,
+  License,
+  ManagedUser,
+  Product,
+  SessionUser,
+  Tenant,
+  View,
+} from "./types";
+import { ApplicationsView } from "./components/ApplicationsView";
+import { ClientsView } from "./components/ClientsView";
+import { DashboardView } from "./components/DashboardView";
+import { LicensesView } from "./components/LicensesView";
+import { ChangePasswordView, LoginView } from "./components/LoginView";
+import {
+  ApplicationDetailsModal,
+  BanClientModal,
+  ClientDetailsModal,
+  CreateApplication,
+  CreateLicense,
+  CreateTenant,
+  CreateUser,
+  LicenseDetailsModal,
+  ReissueModules,
+  VendorDetailsModal,
+} from "./components/Modals";
+import { TenantsView } from "./components/TenantsView";
+import { AuditView, UsersView } from "./components/UsersAndAudit";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -392,6 +60,8 @@ export default function App() {
   const [mobile, setMobile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
+
+  // Data states
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [clients, setClients] = useState<Activation[]>([]);
@@ -399,7 +69,12 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [users, setUsers] = useState<ManagedUser[]>([]);
+
+  // Search & Navigation filters
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("ALL");
+
+  // Operational Modals
   const [showLicense, setShowLicense] = useState(false);
   const [showTenant, setShowTenant] = useState(false);
   const [showApp, setShowApp] = useState(false);
@@ -407,10 +82,17 @@ export default function App() {
   const [banTarget, setBanTarget] = useState<Activation | null>(null);
   const [editLicense, setEditLicense] = useState<License | null>(null);
 
+  // Detailed Inspection Modals
+  const [detailsLicense, setDetailsLicense] = useState<License | null>(null);
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
+  const [detailsTenant, setDetailsTenant] = useState<Tenant | null>(null);
+  const [detailsClient, setDetailsClient] = useState<Activation | null>(null);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("lm_theme", theme);
   }, [theme]);
+
   useEffect(() => {
     const expired = () => {
       setAuthenticated(false);
@@ -421,6 +103,7 @@ export default function App() {
     window.addEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
     return () => window.removeEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
   }, []);
+
   useEffect(() => {
     api<SessionUser>("/auth/me")
       .then((u) => {
@@ -434,6 +117,7 @@ export default function App() {
         setSession(null);
       });
   }, []);
+
   async function load() {
     if (authenticated !== true) return;
     setBusy(true);
@@ -461,21 +145,14 @@ export default function App() {
       setBusy(false);
     }
   }
+
   useEffect(() => {
     if (!authenticated || mustChange !== false) return;
     void load();
     const id = setInterval(() => void load(), 30000);
     return () => clearInterval(id);
   }, [authenticated, mustChange, session?.role]);
-  const shownLicenses = useMemo(
-    () =>
-      licenses.filter((l) =>
-        `${l.serial} ${l.customerRef ?? ""} ${l.product.name} ${l.product.tenant.name} ${l.modules.map((x) => x.module.code).join(" ")}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      ).sort((a, b) => `${a.product.tenant.name}-${a.metadata?.customerName ?? a.customerRef ?? ""}`.localeCompare(`${b.product.tenant.name}-${b.metadata?.customerName ?? b.customerRef ?? ""}`)),
-    [licenses, search],
-  );
+
   async function logout() {
     try {
       await api<{ ok: boolean }>("/auth/logout", { method: "POST" });
@@ -484,25 +161,44 @@ export default function App() {
     setMustChange(false);
     setSession(null);
   }
+
   const done = (message: string) => {
     setToast(message);
     void load();
   };
 
-  if (authenticated === null || mustChange === null)
+  // Clickable widget navigation handler
+  const handleNavigate = (targetView: View, filter = "ALL") => {
+    setView(targetView);
+    setActiveFilter(filter);
+    if (filter !== "ALL" && filter !== "ONLINE" && filter !== "ACTIVE" && filter !== "REVOKED") {
+      setSearch(filter);
+    } else {
+      setSearch("");
+    }
+    setMobile(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Auth checking loading state
+  if (authenticated === null || mustChange === null) {
     return (
-      <div className="login-shell">
-        <div className="login-card">
-          <div className="brand-mark">
-            <ShieldCheck size={22} />
+      <div className="login-screen-full single-panel">
+        <div className="change-password-card" style={{ textAlign: "center" }}>
+          <div className="brand-logo-sq" style={{ margin: "0 auto 16px" }}>
+            <ShieldCheck size={28} />
           </div>
-          <h1>Checking session…</h1>
+          <h2>Verifying Security Session…</h2>
+          <p>Connecting to secure licensing enclave.</p>
         </div>
       </div>
     );
-  if (authenticated === false)
+  }
+
+  // Not authenticated: render full height/width corporate split-screen login
+  if (authenticated === false) {
     return (
-      <Login
+      <LoginView
         onLogin={(user) => {
           setAuthenticated(true);
           setMustChange(user.forcePasswordChange);
@@ -510,87 +206,163 @@ export default function App() {
         }}
       />
     );
-  if (mustChange) return <ChangePassword onDone={() => setMustChange(false)} />;
+  }
+
+  // Must change password
+  if (mustChange) {
+    return <ChangePasswordView onDone={() => setMustChange(false)} />;
+  }
 
   const canAdminister = session?.role === "SUPER_ADMIN" || session?.role === "ADMIN";
   const canSupport = canAdminister || session?.role === "SUPPORT";
-  const nav: [View, string, React.ElementType][] = [
+
+  const navItems: [View, string, React.ElementType][] = [
     ["dashboard", "Overview", LayoutDashboard],
     ["licenses", "Licenses", KeyRound],
-    ["clients", "Client monitoring", Users],
-    ["tenants", "Vendors / tenants", Building2],
+    ["clients", "Client Monitoring", Users],
+    ["tenants", "Vendors / Tenants", Building2],
     ["applications", "Applications", AppWindow],
-    ...(canAdminister ? ([["users", "Users & roles", UserCog]] as [View, string, React.ElementType][]) : []),
-    ["audit", "Audit trail", FileClock],
+    ...(canAdminister
+      ? ([["users", "Users & Roles", UserCog]] as [View, string, React.ElementType][])
+      : []),
+    ["audit", "Audit Trail", FileClock],
   ];
+
+  const onlineSessionsCount = dash?.online ?? clients.filter((c) => c.socketOnline).length;
+
   return (
-    <div className="app-shell">
-      <aside className={mobile ? "sidebar open" : "sidebar"}>
-        <div className="brand">
-          <div className="brand-mark small">
-            <ShieldCheck size={18} />
+    <div className="corporate-app-shell">
+      {/* Sidebar Navigation */}
+      <aside className={`corporate-sidebar ${mobile ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-logo-sq">
+            <ShieldCheck size={20} />
           </div>
-          <div>
+          <div className="brand-text">
             <strong>Kashtrix</strong>
-            <span>License Manager</span>
+            <span>License Operations</span>
           </div>
         </div>
-        <nav>
-          {nav.map(([v, label, I]) => (
+
+        <nav className="sidebar-nav">
+          {navItems.map(([v, label, IconComponent]) => (
             <button
               key={v}
-              className={view === v ? "active" : ""}
+              className={`nav-button ${view === v ? "active" : ""}`}
               onClick={() => {
                 setView(v);
+                setActiveFilter("ALL");
                 setMobile(false);
               }}
             >
-              <I size={17} />
-              {label}
+              <IconComponent size={18} />
+              <span>{label}</span>
+              {v === "clients" && onlineSessionsCount > 0 && (
+                <span className="nav-badge-pill">{onlineSessionsCount}</span>
+              )}
             </button>
           ))}
         </nav>
-        <div className="side-status">
-          <span className="pulse" />
-          <div>
-            <strong>{dash?.online ?? 0} online</strong>
-            <small>Validated TCP sessions</small>
+
+        {/* Sidebar Status Box */}
+        <div
+          className="sidebar-health-box clickable"
+          onClick={() => handleNavigate("clients", "ONLINE")}
+          title="Click to view online client sessions"
+        >
+          <span className="live-pulse" />
+          <div className="health-box-info">
+            <strong>{onlineSessionsCount} Clients Online</strong>
+            <small>Active mTLS Sessions</small>
           </div>
         </div>
-        <button className="logout" onClick={logout}>
+
+        {/* Sign out */}
+        <button className="sidebar-logout-btn" onClick={logout}>
           <LogOut size={16} />
-          Sign out
+          <span>Sign Out</span>
         </button>
       </aside>
-      {mobile ? <button className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setMobile(false)} /> : null}
-      <main>
-        <header>
-          <button
-            className="icon mobile-only"
-            onClick={() => setMobile(!mobile)}
-          >
-            <Menu size={19} />
-          </button>
-          <div>
-            <h2>{nav.find((n) => n[0] === view)?.[1]}</h2>
-            <p>{session?.tenant?.name ?? "Multi-vendor operations"} · {session?.role.replaceAll("_", " ")}</p>
-          </div>
-          <div className="header-actions">
+
+      {/* Mobile Backdrop */}
+      {mobile && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobile(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Main Content Area */}
+      <main className="corporate-main">
+        {/* Top Navbar */}
+        <header className="corporate-navbar">
+          <div className="navbar-left">
             <button
-              className="icon"
+              className="icon-btn mobile-menu-btn"
+              onClick={() => setMobile(!mobile)}
+              aria-label="Toggle navigation"
+            >
+              {mobile ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <div className="navbar-title-group">
+              <h2>{navItems.find((n) => n[0] === view)?.[1] || "Console"}</h2>
+              <div className="navbar-breadcrumb">
+                <span>Kashtrix</span>
+                <span className="bread-sep">/</span>
+                <span className="bread-current">{view}</span>
+                <span className="role-pill">
+                  {session?.tenant?.name ? session.tenant.name : "Multi-Vendor Global"} ·{" "}
+                  {session?.role.replaceAll("_", " ")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="navbar-right">
+            {/* Live Status Button */}
+            <button
+              className="navbar-status-pill"
+              onClick={() => handleNavigate("clients", "ONLINE")}
+              title="Click to view live mTLS sessions"
+            >
+              <span className="status-dot-green" />
+              <span>{onlineSessionsCount} Online</span>
+            </button>
+
+            {/* Theme Switcher */}
+            <button
+              className="icon-btn"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button className="icon" onClick={() => void load()}>
+
+            {/* Refresh Button */}
+            <button
+              className="icon-btn"
+              onClick={() => void load()}
+              title="Refresh operational data"
+            >
               <RefreshCw size={18} className={busy ? "spin" : ""} />
             </button>
-            <div className="avatar" title={`${session?.username} · ${session?.role}`}>
-              {session?.username.slice(0, 2).toUpperCase()}
+
+            {/* User Profile Pill */}
+            <div className="navbar-user-chip">
+              <div className="user-avatar-sq">
+                {session?.username.slice(0, 2).toUpperCase() || "AD"}
+              </div>
+              <div className="user-chip-text">
+                <strong>{session?.username}</strong>
+                <span>{session?.role.replaceAll("_", " ")}</span>
+              </div>
             </div>
           </div>
         </header>
-        <section className="content">
+
+        {/* View Body */}
+        <div className="corporate-view-body">
           {view === "dashboard" && (
             <DashboardView
               dash={dash}
@@ -598,16 +370,22 @@ export default function App() {
               audits={audits}
               tenants={tenants}
               products={products}
+              licenses={licenses}
+              onNavigate={handleNavigate}
+              onSelectClient={(client) => setDetailsClient(client)}
             />
           )}
+
           {view === "licenses" && (
             <LicensesView
-              licenses={shownLicenses}
+              licenses={licenses}
               search={search}
               setSearch={setSearch}
               onCreate={() => setShowLicense(true)}
               canManage={canAdminister}
-              onEditModules={setEditLicense}
+              onEditModules={(l) => setEditLicense(l)}
+              onViewDetails={(l) => setDetailsLicense(l)}
+              initialFilter={activeFilter}
               onStatus={async (id, status) => {
                 await api(`/licenses/${id}/status`, {
                   method: "POST",
@@ -619,74 +397,101 @@ export default function App() {
                         : undefined,
                   }),
                 });
-                done(`License ${status.toLowerCase()}`);
+                done(`License status updated to ${status.toLowerCase()}`);
               }}
               onDelete={async (license) => {
-                if (!window.confirm(`Permanently delete license ${license.serial}? This also removes its activations.`)) return;
+                if (
+                  !window.confirm(
+                    `Permanently delete license ${license.serial}? This also removes its associated client activations.`,
+                  )
+                ) {
+                  return;
+                }
                 await api(`/licenses/${license.id}`, { method: "DELETE" });
                 done("License deleted");
               }}
             />
           )}
+
           {view === "clients" && (
             <ClientsView
               clients={clients}
               canSupport={canSupport}
               canManage={canAdminister}
+              initialFilter={activeFilter}
+              onViewDetails={(client) => setDetailsClient(client)}
               onBan={async (c) => {
                 if (c.state === "BANNED") {
                   await api(`/clients/${c.clientId}/unban`, { method: "POST" });
                   done("Client unbanned");
-                } else setBanTarget(c);
+                } else {
+                  setBanTarget(c);
+                }
               }}
               onRevalidate={async (c) => {
                 await api(`/clients/${c.clientId}/revalidate`, {
                   method: "POST",
                 });
-                setToast("Signed revalidation request sent");
+                setToast("Signed revalidation challenge dispatched");
               }}
             />
           )}
+
           {view === "tenants" && (
             <TenantsView
               tenants={tenants}
+              products={products}
+              licenses={licenses}
               canManage={canAdminister}
               onCreate={() => setShowTenant(true)}
+              onViewDetails={(t) => setDetailsTenant(t)}
               onStatus={async (t, status) => {
                 await api(`/tenants/${t.id}/status`, {
                   method: "POST",
                   body: JSON.stringify({ status }),
                 });
-                done(`Tenant ${status.toLowerCase()}`);
+                done(`Vendor ${status.toLowerCase()}`);
               }}
             />
           )}
+
           {view === "applications" && (
             <ApplicationsView
               products={products}
+              licenses={licenses}
+              clients={clients}
               canManage={canAdminister}
               onCreate={() => setShowApp(true)}
+              onViewDetails={(p) => setDetailsProduct(p)}
+              onIssueLicense={() => setShowLicense(true)}
             />
           )}
+
           {view === "users" && canAdminister && (
             <UsersView
               users={users}
               currentUserId={session?.id ?? ""}
               onCreate={() => setShowUser(true)}
               onToggle={async (user) => {
-                await api(`/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ isActive: !user.isActive }) });
+                await api(`/users/${user.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ isActive: !user.isActive }),
+                });
                 done(`User ${user.isActive ? "disabled" : "enabled"}`);
               }}
               onDelete={async (user) => {
-                if (!window.confirm(`Delete user ${user.username}?`)) return;
+                if (!window.confirm(`Permanently delete user ${user.username}?`)) return;
                 await api(`/users/${user.id}`, { method: "DELETE" });
                 done("User deleted");
               }}
             />
           )}
+
           {view === "audit" && <AuditView rows={audits} />}
-        </section>
+        </div>
       </main>
+
+      {/* Operational Modals */}
       {showTenant && (
         <CreateTenant
           onClose={() => setShowTenant(false)}
@@ -696,6 +501,7 @@ export default function App() {
           }}
         />
       )}
+
       {showApp && (
         <CreateApplication
           tenants={tenants}
@@ -706,6 +512,7 @@ export default function App() {
           }}
         />
       )}
+
       {showUser && (
         <CreateUser
           tenants={tenants}
@@ -717,25 +524,28 @@ export default function App() {
           }}
         />
       )}
+
       {showLicense && (
         <CreateLicense
           onClose={() => setShowLicense(false)}
           onCreated={() => {
             setShowLicense(false);
-            done("License generated");
+            done("Cryptographic license generated");
           }}
         />
       )}
+
       {editLicense && (
         <ReissueModules
           license={editLicense}
           onClose={() => setEditLicense(null)}
           onDone={() => {
             setEditLicense(null);
-            done("Module entitlement reissued");
+            done("License updated and replacement key issued");
           }}
         />
       )}
+
       {banTarget && (
         <BanClientModal
           client={banTarget}
@@ -746,1545 +556,96 @@ export default function App() {
               body: JSON.stringify({ reason }),
             });
             setBanTarget(null);
-            done("Client banned");
+            done("Client installation banned");
           }}
         />
       )}
+
+      {/* Deep Inspection Modals */}
+      {detailsLicense && (
+        <LicenseDetailsModal
+          license={detailsLicense}
+          onClose={() => setDetailsLicense(null)}
+          canManage={canAdminister}
+          onEditModules={(l) => {
+            setDetailsLicense(null);
+            setEditLicense(l);
+          }}
+          onStatus={async (id, status) => {
+            await api(`/licenses/${id}/status`, {
+              method: "POST",
+              body: JSON.stringify({ status }),
+            });
+            done(`License ${status.toLowerCase()}`);
+          }}
+          onDelete={async (l) => {
+            if (!window.confirm(`Delete license ${l.serial}?`)) return;
+            await api(`/licenses/${l.id}`, { method: "DELETE" });
+            done("License deleted");
+          }}
+        />
+      )}
+
+      {detailsProduct && (
+        <ApplicationDetailsModal
+          product={detailsProduct}
+          licenses={licenses}
+          clients={clients}
+          onClose={() => setDetailsProduct(null)}
+          onIssueLicense={() => {
+            setDetailsProduct(null);
+            setShowLicense(true);
+          }}
+        />
+      )}
+
+      {detailsTenant && (
+        <VendorDetailsModal
+          tenant={detailsTenant}
+          products={products}
+          licenses={licenses}
+          canManage={canAdminister}
+          onClose={() => setDetailsTenant(null)}
+          onStatus={async (t, status) => {
+            await api(`/tenants/${t.id}/status`, {
+              method: "POST",
+              body: JSON.stringify({ status }),
+            });
+            done(`Vendor ${status.toLowerCase()}`);
+          }}
+        />
+      )}
+
+      {detailsClient && (
+        <ClientDetailsModal
+          client={detailsClient}
+          canSupport={canSupport}
+          canManage={canAdminister}
+          onClose={() => setDetailsClient(null)}
+          onRevalidate={async (c) => {
+            await api(`/clients/${c.clientId}/revalidate`, {
+              method: "POST",
+            });
+            setToast("Signed revalidation challenge dispatched");
+          }}
+          onBan={async (c) => {
+            setDetailsClient(null);
+            if (c.state === "BANNED") {
+              await api(`/clients/${c.clientId}/unban`, { method: "POST" });
+              done("Client unbanned");
+            } else {
+              setBanTarget(c);
+            }
+          }}
+        />
+      )}
+
+      {/* Feedback Toast */}
       {toast && (
-        <div
-          className="toast"
-          key={toast + Date.now()}
-          onAnimationEnd={() => setToast("")}
-        >
-          {toast}
+        <div className="corporate-toast" role="status" onClick={() => setToast("")}>
+          <span>{toast}</span>
         </div>
       )}
     </div>
-  );
-}
-
-function DashboardView({
-  dash,
-  clients,
-  audits,
-  tenants,
-  products,
-}: {
-  dash: Dashboard | null;
-  clients: Activation[];
-  audits: Audit[];
-  tenants: Tenant[];
-  products: Product[];
-}) {
-  const cards = [
-    ["Active licenses", dash?.active ?? 0, KeyRound],
-    ["Online clients", dash?.online ?? 0, Activity],
-    ["Vendors", tenants.length, Building2],
-    ["Applications", products.length, AppWindow],
-  ] as const;
-  return (
-    <>
-      <div className="metric-grid">
-        {cards.map(([label, value, I]) => (
-          <div className="metric" key={label}>
-            <div className="metric-icon">
-              <I size={17} />
-            </div>
-            <div>
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>authoritative state</small>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="grid-two">
-        <div className="panel">
-          <div className="panel-head">
-            <div>
-              <h3>License health</h3>
-              <p>Online validation posture</p>
-            </div>
-            <Zap size={17} />
-          </div>
-          <div className="health-ring">
-            <div>
-              <strong>
-                {dash?.licenses
-                  ? Math.round(((dash.active || 0) / dash.licenses) * 100)
-                  : 100}
-                %
-              </strong>
-              <span>active</span>
-            </div>
-          </div>
-          <div className="health-row">
-            <span>Total licenses</span>
-            <strong>{dash?.licenses ?? 0}</strong>
-          </div>
-          <div className="health-row">
-            <span>Revoked</span>
-            <strong>{dash?.revoked ?? 0}</strong>
-          </div>
-        </div>
-        <div className="panel">
-          <div className="panel-head">
-            <div>
-              <h3>Recent clients</h3>
-              <p>Tenant/application-scoped installations</p>
-            </div>
-            <Cpu size={17} />
-          </div>
-          <div className="list">
-            {clients.slice(0, 7).map((c) => (
-              <div className="list-row" key={c.id}>
-                <div className="client-glyph">
-                  <Cpu size={15} />
-                </div>
-                <div className="grow">
-                  <strong>
-                    {c.license.product.tenant.name} · {c.license.product.name}
-                  </strong>
-                  <span>{c.clientId}</span>
-                </div>
-                <Badge
-                  value={
-                    c.socketOnline
-                      ? "ONLINE"
-                      : c.provisioningOnline
-                        ? "WAITING_REVALIDATION"
-                        : c.state
-                  }
-                />
-              </div>
-            ))}
-            {!clients.length && <Empty text="No client activations yet" />}
-          </div>
-        </div>
-      </div>
-      <div className="panel table-panel">
-        <div className="panel-head">
-          <div>
-            <h3>Security activity</h3>
-            <p>Administrative and protocol events</p>
-          </div>
-          <FileClock size={17} />
-        </div>
-        <AuditTable rows={audits.slice(0, 8)} />
-      </div>
-    </>
-  );
-}
-
-function LicensesView({
-  licenses,
-  search,
-  setSearch,
-  onCreate,
-  canManage,
-  onEditModules,
-  onStatus,
-  onDelete,
-}: {
-  licenses: License[];
-  search: string;
-  setSearch: (s: string) => void;
-  onCreate: () => void;
-  canManage: boolean;
-  onEditModules: (l: License) => void;
-  onStatus: (id: string, s: string) => void;
-  onDelete: (license: License) => void;
-}) {
-  const pagination = usePagination(licenses);
-  return (
-    <div className="panel table-panel">
-      <div className="toolbar">
-        <div className="search">
-          <Search size={16} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search serial, vendor, app, module or customer"
-          />
-        </div>
-        {canManage ? (
-          <button className="btn primary" onClick={onCreate}>
-            <Plus size={16} />
-            Add client license
-          </button>
-        ) : null}
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>License</th>
-              <th>Client / customer</th>
-              <th>Vendor / application</th>
-              <th>Modules</th>
-              <th>Status</th>
-              <th>Seats</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagination.items.map((l) => (
-              <tr key={l.id}>
-                <td data-label="License">
-                  <strong className="mono">{l.serial}</strong>
-                  <span>
-                    Entitlement v{l.entitlementVersion} · {new Date(l.createdAt).toLocaleDateString()}
-                  </span>
-                </td>
-                <td data-label="Client / customer">
-                  <strong>{l.metadata?.customerName || l.customerRef || "Unassigned client"}</strong>
-                  <span>{l.metadata?.customerEmail || "No contact email"}</span>
-                </td>
-                <td data-label="Vendor / application">
-                  <strong>{l.product.tenant.name}</strong>
-                  <span>{l.product.name}</span>
-                </td>
-                <td data-label="Modules">
-                  <div className="chips">
-                    {l.modules.map((x) => (
-                      <span className="chip" key={x.module.id}>
-                        {x.module.code}
-                      </span>
-                    ))}
-                    {!l.modules.length && (
-                      <span className="muted">No modules</span>
-                    )}
-                  </div>
-                </td>
-                <td data-label="Status">
-                  <Badge value={l.status} />
-                </td>
-                <td data-label="Seats">
-                  {l.activations.length}/{l.maxActivations}
-                </td>
-                <td data-label="Actions">
-                  <div className="row-actions">
-                    {canManage ? <button onClick={() => onEditModules(l)}>Details / modules</button> : null}
-                    {canManage && (l.status === "ACTIVE" ? (
-                      <button
-                        className="danger-link"
-                        onClick={() => onStatus(l.id, "REVOKED")}
-                      >
-                        Revoke
-                      </button>
-                    ) : (
-                      <button onClick={() => onStatus(l.id, "ACTIVE")}>
-                        Restore
-                      </button>
-                    ))}
-                    {canManage ? (
-                      <button className="danger-link icon-link" title="Delete license" onClick={() => onDelete(l)}>
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!licenses.length && <Empty text="No licenses match this search" />}
-      </div>
-      <Pagination {...pagination} />
-    </div>
-  );
-}
-
-function ClientsView({
-  clients,
-  canSupport,
-  canManage,
-  onBan,
-  onRevalidate,
-}: {
-  clients: Activation[];
-  canSupport: boolean;
-  canManage: boolean;
-  onBan: (c: Activation) => void;
-  onRevalidate: (c: Activation) => void;
-}) {
-  const pagination = usePagination(clients);
-  return (
-    <div className="panel table-panel">
-      <div className="panel-head">
-        <div>
-          <h3>Registered application clients</h3>
-          <p>
-            One mTLS channel carries validation, heartbeat and signed
-            entitlement events.
-          </p>
-        </div>
-        <Activity size={17} />
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Vendor / app</th>
-              <th>Modules</th>
-              <th>Status</th>
-              <th>Heartbeat</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagination.items.map((c) => (
-              <tr key={c.id}>
-                <td data-label="Client">
-                  <strong className="mono">{c.clientId}</strong>
-                  <span>
-                    {c.platform || "unknown"} ·{" "}
-                    {c.appVersion || "version unknown"}
-                  </span>
-                </td>
-                <td data-label="Vendor / app">
-                  <strong>{c.license.product.tenant.name}</strong>
-                  <span>{c.license.product.name}</span>
-                </td>
-                <td data-label="Modules">
-                  <div className="chips">
-                    {c.license.modules.map((x) => (
-                      <span className="chip" key={x.module.id}>
-                        {x.module.code}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td data-label="Status">
-                  <Badge
-                    value={
-                      c.socketOnline
-                        ? "ONLINE"
-                        : c.provisioningOnline
-                          ? "WAITING_REVALIDATION"
-                          : c.state
-                    }
-                  />
-                </td>
-                <td data-label="Heartbeat">{relative(c.lastHeartbeatAt)}</td>
-                <td data-label="Actions">
-                  <div className="row-actions">
-                    {canSupport ? <button onClick={() => onRevalidate(c)}>Revalidate</button> : null}
-                    {canManage ? (
-                      <button
-                        className={c.state === "BANNED" ? "" : "danger-link"}
-                        onClick={() => onBan(c)}
-                      >
-                        {c.state === "BANNED" ? "Unban" : "Ban"}
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!clients.length && <Empty text="No registered clients" />}
-      </div>
-      <Pagination {...pagination} />
-    </div>
-  );
-}
-
-function TenantsView({
-  tenants,
-  canManage,
-  onCreate,
-  onStatus,
-}: {
-  tenants: Tenant[];
-  canManage: boolean;
-  onCreate: () => void;
-  onStatus: (t: Tenant, status: string) => void;
-}) {
-  return (
-    <>
-      <div className="page-actions">
-        <div>
-          <h3>Vendors / tenants</h3>
-          <p>
-            Every tenant has a unique public namespace; applications and
-            licenses cannot cross it.
-          </p>
-        </div>
-        {canManage ? <button className="btn primary" onClick={onCreate}>
-          <Plus size={16} />
-          Add vendor
-        </button> : null}
-      </div>
-      <div className="cards">
-        {tenants.map((t) => (
-          <div className="product-card" key={t.id}>
-            <div className="product-icon">
-              <Building2 size={18} />
-            </div>
-            <h3>{t.name}</h3>
-            <p className="mono">{t.code}</p>
-            <ShortId value={t.publicId} />
-            <div>
-              <span>Applications</span>
-              <strong>{t._count?.products ?? 0}</strong>
-            </div>
-            {canManage ? <button
-              className={`btn wide ${t.status === "ACTIVE" ? "" : "primary"}`}
-              onClick={() =>
-                onStatus(t, t.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE")
-              }
-            >
-              {t.status === "ACTIVE" ? "Suspend tenant" : "Activate tenant"}
-            </button> : <Badge value={t.status} />}
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function ApplicationsView({
-  products,
-  canManage,
-  onCreate,
-}: {
-  products: Product[];
-  canManage: boolean;
-  onCreate: () => void;
-}) {
-  return (
-    <>
-      <div className="page-actions">
-        <div>
-          <h3>Applications and modules</h3>
-          <p>Module catalogs are synchronized from client provisioning IDs.</p>
-        </div>
-        {canManage ? <button className="btn primary" onClick={onCreate}>
-          <Plus size={16} />
-          Add application
-        </button> : null}
-      </div>
-      <div className="cards">
-        {products.map((p) => (
-          <div className="product-card app-card" key={p.id}>
-            <div className="card-top">
-              <div className="product-icon">
-                <AppWindow size={18} />
-              </div>
-            </div>
-            <h3>{p.name}</h3>
-            <p>
-              {p.tenant.name} · <span className="mono">{p.code}</span>
-            </p>
-            <ShortId value={p.publicId} />
-            <div className="module-list">
-              <strong>Client-advertised modules</strong>
-              <div className="chips">
-                {p.modules.map((m) => (
-                  <span
-                    className={`chip ${m.enabled ? "" : "disabled"}`}
-                    key={m.id}
-                  >
-                    {m.code}
-                  </span>
-                ))}
-                {!p.modules.length && (
-                  <span className="muted">Waiting for client provisioning</span>
-                )}
-              </div>
-            </div>
-            <div>
-              <span>Issued licenses</span>
-              <strong>{p._count?.licenses ?? 0}</strong>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function UsersView({ users, currentUserId, onCreate, onToggle, onDelete }: {
-  users: ManagedUser[];
-  currentUserId: string;
-  onCreate: () => void;
-  onToggle: (user: ManagedUser) => void;
-  onDelete: (user: ManagedUser) => void;
-}) {
-  const pagination = usePagination(users);
-  return (
-    <div className="panel table-panel">
-      <div className="toolbar">
-        <div>
-          <h3>Users and role-based access</h3>
-          <p>Administrators manage access; vendor accounts are isolated to one vendor.</p>
-        </div>
-        <button className="btn primary" onClick={onCreate}><Plus size={16} /> Add user</button>
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>User</th><th>Role</th><th>Vendor scope</th><th>Status</th><th>Last sign in</th><th></th></tr></thead>
-          <tbody>
-            {pagination.items.map((user) => (
-              <tr key={user.id}>
-                <td data-label="User"><strong>{user.username}</strong><span>Created {new Date(user.createdAt).toLocaleDateString()}</span></td>
-                <td data-label="Role"><Badge value={user.role} /></td>
-                <td data-label="Vendor scope"><strong>{user.tenant?.name ?? "All vendors"}</strong><span>{user.tenant?.code ?? "Global access"}</span></td>
-                <td data-label="Status"><Badge value={user.isActive ? "ACTIVE" : "SUSPENDED"} /></td>
-                <td data-label="Last sign in">{relative(user.lastLoginAt)}</td>
-                <td data-label="Actions">
-                  <div className="row-actions">
-                    <button disabled={user.id === currentUserId} onClick={() => onToggle(user)}>{user.isActive ? "Disable" : "Enable"}</button>
-                    <button disabled={user.id === currentUserId} className="danger-link" onClick={() => onDelete(user)}><Trash2 size={14} /> Delete</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!users.length && <Empty text="No users found" />}
-      </div>
-      <Pagination {...pagination} />
-    </div>
-  );
-}
-
-function AuditView({ rows }: { rows: Audit[] }) {
-  return (
-    <div className="panel table-panel">
-      <div className="panel-head">
-        <div>
-          <h3>Audit trail</h3>
-          <p>Administrative and security-sensitive events</p>
-        </div>
-        <ShieldCheck size={17} />
-      </div>
-      <AuditTable rows={rows} />
-    </div>
-  );
-}
-function AuditTable({ rows }: { rows: Audit[] }) {
-  const pagination = usePagination(rows);
-  return (
-    <>
-      <div className="table-wrap">
-        <table>
-        <thead>
-          <tr>
-            <th>Event</th>
-            <th>Entity</th>
-            <th>Actor</th>
-            <th>Severity</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pagination.items.map((r) => (
-            <tr key={String(r.id)}>
-              <td data-label="Event">
-                <strong>{r.action.replaceAll("_", " ")}</strong>
-              </td>
-              <td data-label="Entity">{r.entityType}</td>
-              <td data-label="Actor">{r.actor?.username || "System"}</td>
-              <td data-label="Severity">
-                <Badge value={r.severity} />
-              </td>
-              <td data-label="Time">{relative(r.createdAt)}</td>
-            </tr>
-          ))}
-        </tbody>
-        </table>
-        {!rows.length && <Empty text="No audit entries yet" />}
-      </div>
-      <Pagination {...pagination} />
-    </>
-  );
-}
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="empty">
-      <ShieldCheck size={22} />
-      <span>{text}</span>
-    </div>
-  );
-}
-
-function ModalFrame({
-  title,
-  subtitle,
-  onClose,
-  children,
-  compact = false,
-}: {
-  title: string;
-  subtitle: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  compact?: boolean;
-}) {
-  return (
-    <div className="modal-backdrop">
-      <div className={`modal ${compact ? "compact-modal" : ""}`}>
-        <div className="modal-head">
-          <div>
-            <h3>{title}</h3>
-            <p>{subtitle}</p>
-          </div>
-          <button className="icon" onClick={onClose}>
-            <XCircle size={19} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function initialEntitlements(
-  capabilities: Capability[],
-  current: Record<string, boolean | number> = {},
-) {
-  return Object.fromEntries(
-    capabilities.map((capability) => [
-      capability.code,
-      current[capability.code] ??
-        capability.defaultValue ??
-        (capability.type === "boolean" ? false : (capability.min ?? 0)),
-    ]),
-  );
-}
-function CapabilitySelector({
-  capabilities,
-  values,
-  onChange,
-}: {
-  capabilities: Capability[];
-  values: Record<string, boolean | number>;
-  onChange: (code: string, value: boolean | number) => void;
-}) {
-  return (
-    <div className="module-selector">
-      {capabilities.map((capability) =>
-        capability.type === "boolean" ? (
-          <label
-            className="module-option capability-option capability-boolean"
-            key={capability.code}
-          >
-            <input
-              type="checkbox"
-              checked={values[capability.code] === true}
-              onChange={(event) =>
-                onChange(capability.code, event.target.checked)
-              }
-            />
-            <span>
-              <strong>{capability.code}</strong>
-              <small>{capability.name}</small>
-            </span>
-          </label>
-        ) : (
-          <label
-            className="capability-option capability-number"
-            key={capability.code}
-          >
-            <span className="capability-copy">
-              <strong>{capability.code}</strong>
-              <small>
-                {capability.name}
-                {capability.unit ? ` (${capability.unit})` : ""}
-              </small>
-              <small className="capability-range">
-                Enter any whole number from {capability.min ?? 0} to{" "}
-                {capability.max ?? 1000000}
-              </small>
-            </span>
-            <span className="capability-number-control">
-              <input
-                aria-label={capability.name}
-                type="number"
-                inputMode="numeric"
-                min={capability.min ?? 0}
-                max={capability.max ?? 1000000}
-                step={capability.step ?? 1}
-                value={Number(
-                  values[capability.code] ??
-                    capability.defaultValue ??
-                    capability.min ??
-                    0,
-                )}
-                onFocus={(event) => event.currentTarget.select()}
-                onChange={(event) => {
-                  const value = event.currentTarget.valueAsNumber;
-                  if (Number.isInteger(value)) onChange(capability.code, value);
-                }}
-              />
-              {capability.unit && <em>{capability.unit}</em>}
-            </span>
-          </label>
-        ),
-      )}
-    </div>
-  );
-}
-
-function CreateUser({ tenants, isSuperAdmin, onClose, onCreated }: {
-  tenants: Tenant[];
-  isSuperAdmin: boolean;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<SessionUser["role"]>("SUPPORT");
-  const [tenantId, setTenantId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await api("/users", { method: "POST", body: JSON.stringify({ username, password, role, tenantId: role === "VENDOR" ? tenantId : null }) });
-      onCreated();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "User creation failed");
-      setLoading(false);
-    }
-  }
-  return (
-    <ModalFrame title="Add user" subtitle="Assign operational access and vendor visibility" onClose={onClose} compact>
-      <form className="form-grid" onSubmit={submit}>
-        <label>Username<input required minLength={3} value={username} onChange={(e) => setUsername(e.target.value)} placeholder="name or email alias" /></label>
-        <label>Temporary password<input required type="password" minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="12+ characters" /></label>
-        <label className="full">Role
-          <select value={role} onChange={(e) => setRole(e.target.value as SessionUser["role"])}>
-            {isSuperAdmin ? <option value="SUPER_ADMIN">Super admin</option> : null}
-            <option value="ADMIN">Admin</option>
-            <option value="SUPPORT">Support</option>
-            <option value="MONITORING">Monitoring</option>
-            <option value="AUDITOR">Auditor</option>
-            <option value="VENDOR">Vendor (own licenses only)</option>
-          </select>
-        </label>
-        {role === "VENDOR" ? (
-          <label className="full">Vendor
-            <select required value={tenantId} onChange={(e) => setTenantId(e.target.value)}>
-              <option value="">Select vendor</option>
-              {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name} ({tenant.code})</option>)}
-            </select>
-          </label>
-        ) : null}
-        <p className="form-help full">The user must change the temporary password at first sign in.</p>
-        {error ? <div className="error full">{error}</div> : null}
-        <div className="modal-actions full">
-          <button type="button" className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn primary" disabled={loading}>{loading ? "Creating…" : "Create user"}</button>
-        </div>
-      </form>
-    </ModalFrame>
-  );
-}
-
-function CreateTenant({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await api("/tenants", {
-        method: "POST",
-        body: JSON.stringify({
-          code: code
-            .trim()
-            .toUpperCase()
-            .replace(/[^A-Z0-9_-]/g, "_"),
-          name: name.trim(),
-          description: description.trim() || undefined,
-        }),
-      });
-      onCreated();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Create failed");
-      setLoading(false);
-    }
-  }
-  return (
-    <ModalFrame
-      title="Add vendor / tenant"
-      subtitle="Creates an isolated licensing namespace."
-      onClose={onClose}
-      compact
-    >
-      <form onSubmit={submit} className="ban-form">
-        <label>
-          Tenant code
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="VENDOR_A"
-            required
-          />
-        </label>
-        <label>
-          Name
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Vendor A"
-            required
-          />
-        </label>
-        <label>
-          Description
-          <textarea
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        {error && <div className="error">{error}</div>}
-        <div className="modal-actions">
-          <button type="button" className="btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn primary" disabled={loading}>
-            {loading ? "Creating…" : "Create tenant"}
-          </button>
-        </div>
-      </form>
-    </ModalFrame>
-  );
-}
-
-function CreateApplication({
-  tenants,
-  onClose,
-  onCreated,
-}: {
-  tenants: Tenant[];
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [tenantId, setTenantId] = useState(tenants[0]?.id || "");
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await api("/applications", {
-        method: "POST",
-        body: JSON.stringify({
-          tenantId,
-          code: code
-            .trim()
-            .toUpperCase()
-            .replace(/[^A-Z0-9_-]/g, "_"),
-          name: name.trim(),
-          description: description.trim() || undefined,
-        }),
-      });
-      onCreated();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Create failed");
-      setLoading(false);
-    }
-  }
-  return (
-    <ModalFrame
-      title="Add application"
-      subtitle="A unique application UUID is generated; modules arrive from its client provisioning ID."
-      onClose={onClose}
-    >
-      <form onSubmit={submit} className="form-grid">
-        <label>
-          Vendor / tenant
-          <select
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            required
-          >
-            {tenants.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Application code
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="DESKTOP_PRO"
-            required
-          />
-        </label>
-        <label>
-          Name
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Desktop Pro"
-            required
-          />
-        </label>
-        <label>
-          Description
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional"
-          />
-        </label>
-        {error && <div className="error full">{error}</div>}
-        <div className="modal-actions full">
-          <button type="button" className="btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn primary" disabled={loading}>
-            Create application
-          </button>
-        </div>
-      </form>
-    </ModalFrame>
-  );
-}
-
-function CreateLicense({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [resolvedProduct, setResolvedProduct] = useState<Product | null>(null);
-  const selected = resolvedProduct;
-  const [entitlements, setEntitlements] = useState<
-    Record<string, boolean | number>
-  >({});
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [provisioningId, setProvisioningId] = useState("");
-  const [autoActivate, setAutoActivate] = useState(true);
-  const [resolving, setResolving] = useState(false);
-  const [provisioningError, setProvisioningError] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
-  const [maxActivations, setMaxActivations] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [created, setCreated] = useState<License | null>(null);
-  useEffect(() => {
-    const value = provisioningId.trim();
-    setProvisioningError("");
-    if (!value) {
-      setResolvedProduct(null);
-      setEntitlements({});
-      return;
-    }
-    if (!value.startsWith("KTX1.")) {
-      setResolvedProduct(null);
-      setEntitlements({});
-      setProvisioningError(
-        "Paste the KTX1 provisioning ID shown by the client application.",
-      );
-      return;
-    }
-    const timer = window.setTimeout(async () => {
-      setResolving(true);
-      try {
-        const result = await api<{
-          product: Product;
-          hwid: string;
-          capabilities: Capability[];
-        }>("/applications/resolve-provisioning", {
-          method: "POST",
-          body: JSON.stringify({ provisioningId: value }),
-        });
-        const product = {
-          ...result.product,
-          capabilities: result.capabilities,
-        };
-        setResolvedProduct(product);
-        setEntitlements(initialEntitlements(result.capabilities));
-        setProvisioningError("");
-      } catch (e) {
-        setResolvedProduct(null);
-        setEntitlements({});
-        setProvisioningError(
-          e instanceof Error ? e.message : "Provisioning ID lookup failed",
-        );
-      } finally {
-        setResolving(false);
-      }
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [provisioningId]);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!resolvedProduct) {
-      setError("Paste and resolve the client provisioning ID first");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      const l = await api<License>("/licenses", {
-        method: "POST",
-        body: JSON.stringify({
-          moduleIds: [],
-          entitlements,
-          provisioningId: provisioningId.trim(),
-          customerName: customerName.trim() || undefined,
-          customerEmail: customerEmail.trim() || undefined,
-          expiresAt: expiresAt || undefined,
-          maxActivations,
-          autoActivate,
-        }),
-      });
-      setCreated(l);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-  return (
-    <ModalFrame
-      title={created ? "License generated" : "Generate license"}
-      subtitle={
-        created
-          ? "The JWT is displayed once. Store it securely."
-          : "Paste the client provisioning ID, then choose the modules advertised by that installation."
-      }
-      onClose={onClose}
-    >
-      {created ? (
-        <KeyResult license={created} onDone={onCreated} />
-      ) : (
-        <form onSubmit={submit} className="form-grid">
-          <label className="full">
-            Client provisioning ID
-            <input
-              value={provisioningId}
-              onChange={(e) => setProvisioningId(e.target.value)}
-              placeholder="Paste KTX1… from the client application"
-            />
-            <small>
-              {resolving
-                ? "Reading client module catalog…"
-                : resolvedProduct
-                  ? `Matched ${resolvedProduct.name}; ${resolvedProduct.modules.length} client-advertised modules loaded.`
-                  : "The provisioning ID supplies the application, app-scoped HWID, and supported module catalog."}
-            </small>
-          </label>
-          {provisioningError && (
-            <div className="error full">{provisioningError}</div>
-          )}
-          <label className="full">
-            Resolved application
-            <input
-              readOnly
-              value={
-                selected
-                  ? `${selected.tenant.name} · ${selected.name}`
-                  : "Waiting for a valid provisioning ID"
-              }
-            />
-            <small>
-              {selected && (
-                <>
-                  tenantId{" "}
-                  <span className="mono">{selected.tenant.publicId}</span> ·
-                  applicationId{" "}
-                  <span className="mono">{selected.publicId}</span>
-                </>
-              )}
-            </small>
-          </label>
-          <label>
-            Customer / client name
-            <input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Optional customer name"
-            />
-          </label>
-          <label>
-            Customer email
-            <input
-              type="email"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-              placeholder="Optional email"
-            />
-          </label>
-          <label>
-            Max activations
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={maxActivations}
-              onChange={(e) => setMaxActivations(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            Expiration date
-            <input
-              type="date"
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-            />
-            <small>Leave blank for no expiration.</small>
-          </label>
-          <label className="full">
-            <span className="module-option">
-              <input
-                type="checkbox"
-                checked={autoActivate}
-                onChange={(e) => setAutoActivate(e.target.checked)}
-              />
-              <span>
-                <strong>Activate connected client automatically</strong>
-                <small>
-                  Securely delivers the JWT over the client's waiting mTLS
-                  connection. Manual copy remains available.
-                </small>
-              </span>
-            </span>
-          </label>
-          <div className="full capability-field">
-            <span>Client-advertised entitlements</span>
-            {selected && (
-              <CapabilitySelector
-                capabilities={selected.capabilities || []}
-                values={entitlements}
-                onChange={(code, value) =>
-                  setEntitlements((current) => ({ ...current, [code]: value }))
-                }
-              />
-            )}
-            <div>
-              {!selected && (
-                <span className="muted">
-                  Paste a provisioning ID to load features and numeric limits
-                  from the client.
-                </span>
-              )}
-            </div>
-          </div>
-          {error && <div className="error full">{error}</div>}
-          <div className="modal-actions full">
-            <button type="button" className="btn" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              className="btn primary"
-              disabled={
-                loading ||
-                resolving ||
-                !resolvedProduct ||
-                Boolean(provisioningError)
-              }
-            >
-              <KeyRound size={16} />
-              {loading ? "Generating…" : "Generate JWT"}
-            </button>
-          </div>
-        </form>
-      )}
-    </ModalFrame>
-  );
-}
-
-function productToDefaultCapabilities(product: Product): Capability[] {
-  return (product.modules || []).map((m) => {
-    if (m.code === "RECORDING_DEVICES") {
-      return {
-        code: m.code,
-        name: m.name,
-        description: m.description,
-        type: "integer" as const,
-        min: 0,
-        max: 1000000,
-        step: 1,
-        defaultValue: 0,
-        unit: "devices",
-      };
-    }
-    if (m.code === "TRANSCODE_QUEUE_ITEMS") {
-      return {
-        code: m.code,
-        name: m.name,
-        description: m.description,
-        type: "integer" as const,
-        min: 0,
-        max: 1000000,
-        step: 1,
-        defaultValue: 0,
-        unit: "jobs",
-      };
-    }
-    return {
-      code: m.code,
-      name: m.name,
-      description: m.description,
-      type: "boolean" as const,
-      defaultValue: false,
-    };
-  });
-}
-
-function ReissueModules({
-  license,
-  onClose,
-  onDone,
-}: {
-  license: License;
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const rememberedId = license.metadata?.provisioningId || "";
-  const [provisioningId, setProvisioningId] = useState(rememberedId);
-  const [catalog, setCatalog] = useState<Product | null>(() => {
-    if (license.product?.modules?.length) {
-      return {
-        ...license.product,
-        capabilities: productToDefaultCapabilities(license.product),
-      };
-    }
-    return null;
-  });
-  const [entitlements, setEntitlements] = useState<
-    Record<string, boolean | number>
-  >(() => {
-    const current =
-      license.metadata?.entitlements ||
-      Object.fromEntries(
-        license.modules.map((item) => [item.module.code, true]),
-      );
-    const defaultCaps = license.product?.modules
-      ? productToDefaultCapabilities(license.product)
-      : [];
-    return initialEntitlements(defaultCaps, current);
-  });
-  const [customerName, setCustomerName] = useState(
-    license.metadata?.customerName || license.customerRef || "",
-  );
-  const [customerEmail, setCustomerEmail] = useState(
-    license.metadata?.customerEmail || "",
-  );
-  const [expiresAt, setExpiresAt] = useState(
-    license.expiresAt?.slice(0, 10) || "",
-  );
-  const [autoActivate, setAutoActivate] = useState(true);
-  const [created, setCreated] = useState<License | null>(null);
-  const [error, setError] = useState("");
-  const [resolving, setResolving] = useState(false);
-  useEffect(() => {
-    const value = provisioningId.trim();
-    if (!value) {
-      if (license.product?.modules?.length) {
-        const caps = productToDefaultCapabilities(license.product);
-        setCatalog({ ...license.product, capabilities: caps });
-        const current =
-          license.metadata?.entitlements ||
-          Object.fromEntries(
-            license.modules.map((item) => [item.module.code, true]),
-          );
-        setEntitlements(initialEntitlements(caps, current));
-      } else {
-        setCatalog(null);
-        setEntitlements({});
-      }
-      setError("");
-      return;
-    }
-    if (!value.startsWith("KTX1.")) {
-      setError(
-        "Paste the KTX1 provisioning ID shown by the client application.",
-      );
-      return;
-    }
-    const timer = window.setTimeout(async () => {
-      setResolving(true);
-      setError("");
-      try {
-        const result = await api<{
-          product: Product;
-          capabilities: Capability[];
-        }>("/applications/resolve-provisioning", {
-          method: "POST",
-          body: JSON.stringify({ provisioningId: value }),
-        });
-        if (result.product.id !== license.product.id)
-          throw new Error("Provisioning ID belongs to a different application");
-        setCatalog({ ...result.product, capabilities: result.capabilities });
-        const current =
-          license.metadata?.entitlements ||
-          Object.fromEntries(
-            license.modules.map((item) => [item.module.code, true]),
-          );
-        setEntitlements(initialEntitlements(result.capabilities, current));
-      } catch (e) {
-        if (license.product?.modules?.length) {
-          const caps = productToDefaultCapabilities(license.product);
-          setCatalog({ ...license.product, capabilities: caps });
-        } else {
-          setCatalog(null);
-          setEntitlements({});
-        }
-        setError(e instanceof Error ? e.message : "Provisioning lookup failed");
-      } finally {
-        setResolving(false);
-      }
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [provisioningId, license]);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!catalog) return;
-    setError("");
-    try {
-      const l = await api<License>(`/licenses/${license.id}/modules`, {
-        method: "POST",
-        body: JSON.stringify({
-          provisioningId: provisioningId.trim() || undefined,
-          moduleIds: [],
-          entitlements,
-          customerName: customerName.trim() || undefined,
-          customerEmail: customerEmail.trim() || undefined,
-          expiresAt: expiresAt || undefined,
-          autoActivate,
-        }),
-      });
-      setCreated(l);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Reissue failed");
-    }
-  }
-  return (
-    <ModalFrame
-      title={
-        created
-          ? "Replacement key generated"
-          : "Change license details and modules"
-      }
-      subtitle={
-        created
-          ? "The previous JWT is now invalid for reconnects."
-          : rememberedId
-            ? "Client provisioning ID remembered from activation. Update details or module entitlements."
-            : "Update client details and module entitlements."
-      }
-      onClose={onClose}
-    >
-      {created ? (
-        <KeyResult license={created} onDone={onDone} />
-      ) : (
-        <form onSubmit={submit} className="ban-form">
-          <div className="warning-box">
-            <Layers3 size={17} />
-            <span>
-              Distribute the replacement key to the application. Connected
-              clients receive a signed reissue notice; old keys are rejected on
-              reconnect.
-            </span>
-          </div>
-          <label>
-            Client provisioning ID
-            <input
-              value={provisioningId}
-              onChange={(e) => setProvisioningId(e.target.value)}
-              placeholder="Paste KTX1… from the client (optional if client is already provisioned)"
-            />
-            <small>
-              {resolving
-                ? "Reading client module catalog…"
-                : catalog
-                  ? provisioningId.trim()
-                    ? `${catalog.modules.length} client-advertised modules loaded${rememberedId && provisioningId === rememberedId ? " (remembered from activation)" : ""}.`
-                    : `${catalog.modules.length} application modules loaded.`
-                  : "Optional if product modules are already registered."}
-            </small>
-          </label>
-          <label>
-            Customer / client name
-            <input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Optional customer name"
-            />
-          </label>
-          <label>
-            Customer email
-            <input
-              type="email"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-              placeholder="Optional email"
-            />
-          </label>
-          <label>
-            Expiration date
-            <input
-              type="date"
-              value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
-            />
-          </label>
-          {catalog && (
-            <CapabilitySelector
-              capabilities={catalog.capabilities || []}
-              values={entitlements}
-              onChange={(code, value) =>
-                setEntitlements((current) => ({ ...current, [code]: value }))
-              }
-            />
-          )}
-          {error && <div className="error">{error}</div>}
-          <div className="modal-actions">
-            <button type="button" className="btn" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="btn primary" disabled={!catalog || resolving}>
-              Reissue key
-            </button>
-          </div>
-        </form>
-      )}
-    </ModalFrame>
-  );
-}
-
-function KeyResult({
-  license,
-  onDone,
-}: {
-  license: License;
-  onDone: () => void;
-}) {
-  const delivery = license.autoDelivered
-    ? "Securely delivered to the connected client. Kashtrix is activating automatically."
-    : license.autoActivationRequested
-      ? "Client was not connected for remote activation. Copy and install the JWT manually."
-      : "Automatic activation was not requested. Copy and install the JWT manually.";
-  return (
-    <div className="created-license">
-      <div className="success-icon">
-        <CheckCircle2 size={22} />
-      </div>
-      <strong className="mono">{license.serial}</strong>
-      <p className="result-meta">
-        {license.product.tenant.name} · {license.product.name} ·{" "}
-        {Object.entries(license.metadata?.entitlements || {})
-          .filter(
-            ([, value]) =>
-              value === true || (typeof value === "number" && value > 0),
-          )
-          .map(([code, value]) =>
-            typeof value === "number" ? `${code}=${value}` : code,
-          )
-          .join(", ") || "no entitlements"}
-      </p>
-      <div className={license.autoDelivered ? "warning-box" : "error"}>
-        {delivery}
-      </div>
-      <textarea readOnly value={license.jwtKey ?? ""} />
-      <button
-        className="btn"
-        onClick={() => navigator.clipboard.writeText(license.jwtKey ?? "")}
-      >
-        <Copy size={16} />
-        Copy JWT license key
-      </button>
-      <button className="btn primary wide" onClick={onDone}>
-        Done
-      </button>
-    </div>
-  );
-}
-
-function BanClientModal({
-  client,
-  onClose,
-  onConfirm,
-}: {
-  client: Activation;
-  onClose: () => void;
-  onConfirm: (reason: string) => Promise<void>;
-}) {
-  const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (reason.trim().length < 3) {
-      setError("Enter a clear reason");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      await onConfirm(reason.trim());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Ban failed");
-      setLoading(false);
-    }
-  }
-  return (
-    <ModalFrame
-      title="Ban client installation"
-      subtitle={client.clientId}
-      onClose={onClose}
-      compact
-    >
-      <form onSubmit={submit} className="ban-form">
-        <div className="warning-box">
-          <Ban size={17} />
-          <span>
-            This installation receives a signed CLIENT_BANNED event and its mTLS
-            session is terminated.
-          </span>
-        </div>
-        <label>
-          Audit reason
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={4}
-            placeholder="Example: reported stolen workstation"
-          />
-        </label>
-        {error && <div className="error">{error}</div>}
-        <div className="modal-actions">
-          <button type="button" className="btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn danger-btn" disabled={loading}>
-            {loading ? "Banning…" : "Ban installation"}
-          </button>
-        </div>
-      </form>
-    </ModalFrame>
   );
 }
