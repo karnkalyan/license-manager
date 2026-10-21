@@ -399,11 +399,10 @@ export function LicensesView({
                             <th>License Serial</th>
                             <th>Customer / Tenant</th>
                             <th>Dealer / Franchise</th>
-                            <th>Modules</th>
-                            <th>Seats Used</th>
+                            <th>Seats</th>
                             <th>Expiration</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -478,8 +477,9 @@ export function LicensesView({
                             <th>Application</th>
                             <th>Dealer</th>
                             <th>Seats</th>
+                            <th>Expiration</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th style={{ textAlign: "right" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>

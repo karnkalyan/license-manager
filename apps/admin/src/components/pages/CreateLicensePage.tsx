@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
   Copy,
   Cpu,
   KeyRound,
+  Search,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -60,6 +61,7 @@ export function CreateLicensePage({
   const [error, setError] = useState("");
   const [created, setCreated] = useState<License | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [capSearch, setCapSearch] = useState("");
 
   useEffect(() => {
     const value = provisioningId.trim();
@@ -152,6 +154,16 @@ export function CreateLicensePage({
     type: "boolean" as const,
     defaultValue: false,
   }));
+
+  const filteredCapabilities = useMemo(() => {
+    if (!capSearch.trim()) return capabilities;
+    const q = capSearch.toLowerCase();
+    return capabilities.filter(
+      (c) =>
+        c.code.toLowerCase().includes(q) ||
+        (c.name && c.name.toLowerCase().includes(q))
+    );
+  }, [capabilities, capSearch]);
 
   return (
     <div className="page-view-container">
@@ -391,54 +403,101 @@ export function CreateLicensePage({
               {/* Module & Capability Entitlements */}
               <div className="entitlements-selector-box">
                 <div className="entitlements-box-head">
-                  <Cpu size={16} />
-                  <strong>Application Modules & Capabilities</strong>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Cpu size={16} className="pink-icon" />
+                    <strong>Application Modules & Capabilities</strong>
+                    {capabilities.length > 0 && (
+                      <span className="badge slate" style={{ marginLeft: "6px" }}>
+                        {capabilities.length} Total
+                      </span>
+                    )}
+                  </div>
+                  {capabilities.length > 5 && (
+                    <div style={{ position: "relative", width: "180px" }}>
+                      <input
+                        type="text"
+                        placeholder="Search modules..."
+                        value={capSearch}
+                        onChange={(e) => setCapSearch(e.target.value)}
+                        style={{
+                          minHeight: "30px",
+                          height: "30px",
+                          padding: "0 8px 0 26px",
+                          fontSize: "12px",
+                          borderRadius: "6px",
+                        }}
+                      />
+                      <Search
+                        size={13}
+                        style={{
+                          position: "absolute",
+                          left: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--muted)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {capabilities.length > 0 ? (
                   <div className="capabilities-grid">
-                    {capabilities.map((cap) => (
-                      <div key={cap.code} className="capability-card">
-                        {cap.type === "integer" ? (
-                          <div className="capability-int-row">
-                            <div>
-                              <strong>{cap.code}</strong>
-                              <small>{cap.name}</small>
+                    {filteredCapabilities.map((cap) => {
+                      const isBool = cap.type !== "integer";
+                      const isChecked = entitlements[cap.code] === true;
+                      return (
+                        <div
+                          key={cap.code}
+                          className={`capability-card ${isBool && isChecked ? "active-bool" : ""}`}
+                        >
+                          {cap.type === "integer" ? (
+                            <div className="capability-int-row">
+                              <div>
+                                <strong>{cap.code}</strong>
+                                <small>{cap.name || "Numeric allocation quota"}</small>
+                              </div>
+                              <input
+                                type="number"
+                                min={cap.min ?? 0}
+                                max={cap.max ?? 1000000}
+                                value={Number(entitlements[cap.code] ?? cap.defaultValue ?? 0)}
+                                onChange={(e) =>
+                                  setEntitlements((prev) => ({
+                                    ...prev,
+                                    [cap.code]: Number(e.target.value) || 0,
+                                  }))
+                                }
+                                className="cap-number-input"
+                              />
                             </div>
-                            <input
-                              type="number"
-                              min={cap.min ?? 0}
-                              max={cap.max ?? 1000000}
-                              value={Number(entitlements[cap.code] ?? cap.defaultValue ?? 0)}
-                              onChange={(e) =>
-                                setEntitlements((prev) => ({
-                                  ...prev,
-                                  [cap.code]: Number(e.target.value) || 0,
-                                }))
-                              }
-                              className="cap-number-input"
-                            />
-                          </div>
-                        ) : (
-                          <label className="capability-bool-label">
-                            <input
-                              type="checkbox"
-                              checked={entitlements[cap.code] === true}
-                              onChange={(e) =>
-                                setEntitlements((prev) => ({
-                                  ...prev,
-                                  [cap.code]: e.target.checked,
-                                }))
-                              }
-                            />
-                            <div>
-                              <strong>{cap.code}</strong>
-                              <small>{cap.name}</small>
-                            </div>
-                          </label>
-                        )}
+                          ) : (
+                            <label className="capability-bool-label">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) =>
+                                  setEntitlements((prev) => ({
+                                    ...prev,
+                                    [cap.code]: e.target.checked,
+                                  }))
+                                }
+                              />
+                              <div>
+                                <strong>{cap.code}</strong>
+                                <small>{cap.name || "Toggle feature access"}</small>
+                              </div>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {filteredCapabilities.length === 0 && (
+                      <div className="empty-subtext" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "16px" }}>
+                        No modules match "{capSearch}"
                       </div>
-                    ))}
+                    )}
                   </div>
                 ) : (
                   <div className="empty-subtext">

@@ -201,19 +201,27 @@ export function LicenseDetailsPage({
 
             <div className="chips-detailed-grid">
               {Object.keys(entitlements).length > 0 ? (
-                Object.entries(entitlements).map(([code, val]) => (
-                  <div key={code} className="entitlement-pill-card">
-                    <span className="mono code">{code}</span>
-                    <span className="val-badge">
-                      {typeof val === "boolean" ? (val ? "ENABLED" : "DISABLED") : String(val)}
-                    </span>
-                  </div>
-                ))
+                Object.entries(entitlements).map(([code, val]) => {
+                  const isBool = typeof val === "boolean";
+                  const badgeClass = isBool
+                    ? val
+                      ? "val-enabled"
+                      : "val-disabled"
+                    : "val-quota";
+                  return (
+                    <div key={code} className="entitlement-pill-card">
+                      <span className="mono code">{code}</span>
+                      <span className={`val-badge ${badgeClass}`}>
+                        {isBool ? (val ? "ENABLED" : "DISABLED") : String(val)}
+                      </span>
+                    </div>
+                  );
+                })
               ) : license.modules.length > 0 ? (
                 license.modules.map((m) => (
                   <div key={m.module.id} className="entitlement-pill-card">
                     <span className="mono code">{m.module.code}</span>
-                    <span className="val-badge">{m.module.name}</span>
+                    <span className="val-badge val-enabled">{m.module.name || "ENABLED"}</span>
                   </div>
                 ))
               ) : (
