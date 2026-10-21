@@ -2696,6 +2696,82 @@ input:focus, select:focus, textarea:focus {
   margin: 0;
 }
 
+/* Page Two-Column Responsive Layout (Details View) */
+.page-two-col-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.page-col-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+}
+
+.page-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+}
+
+.sticky-card {
+  position: sticky;
+  top: 80px;
+}
+
+.helper-text {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.jwt-key-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.small-key-textarea {
+  width: 100%;
+  font-size: 11.5px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  resize: vertical;
+  line-height: 1.4;
+  outline: none;
+}
+
+.quick-actions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.box-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.full-width {
+  width: 100%;
+}
+
 /* Page Content Card */
 .page-content-card {
   background: var(--panel);
@@ -3589,6 +3665,9 @@ select.corporate-select:focus {
 }
 
 @media (max-width: 960px) {
+  .page-two-col-layout {
+    grid-template-columns: 1fr;
+  }
   .login-screen-full {
     grid-template-columns: 1fr;
   }

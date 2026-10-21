@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -8,6 +8,7 @@ import {
   Eye,
   KeyRound,
   RefreshCw,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Trash2,
@@ -52,6 +53,31 @@ export function LicenseDetailsPage({
   const effectiveStatus = isExpired && license.status === "ACTIVE" ? "EXPIRED" : license.status;
   const meta = (license.metadata && typeof license.metadata === "object" ? license.metadata : {}) as Record<string, any>;
   const entitlements = (meta.entitlements || {}) as Record<string, boolean | number>;
+  const [moduleSearch, setModuleSearch] = useState("");
+
+  const rawEntries = useMemo(() => {
+    if (Object.keys(entitlements).length > 0) {
+      return Object.entries(entitlements).map(([code, val]) => ({
+        code,
+        val,
+        isBool: typeof val === "boolean",
+      }));
+    }
+    if (license.modules.length > 0) {
+      return license.modules.map((m) => ({
+        code: m.module.code,
+        val: m.module.name || "ENABLED",
+        isBool: false,
+      }));
+    }
+    return [];
+  }, [entitlements, license.modules]);
+
+  const filteredEntries = useMemo(() => {
+    if (!moduleSearch.trim()) return rawEntries;
+    const q = moduleSearch.toLowerCase();
+    return rawEntries.filter((e) => e.code.toLowerCase().includes(q) || String(e.val).toLowerCase().includes(q));
+  }, [rawEntries, moduleSearch]);
 
   return (
     <div className="page-view-container">
@@ -194,36 +220,67 @@ export function LicenseDetailsPage({
 
           {/* Module Capabilities Card */}
           <div className="page-content-card">
-            <div className="card-section-head">
-              <Cpu size={18} className="pink-icon" />
-              <h3>Certified Modules & Capabilities</h3>
+            <div className="card-section-head" style={{ justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Cpu size={18} className="pink-icon" />
+                <h3>Certified Modules & Capabilities</h3>
+                {rawEntries.length > 0 && (
+                  <span className="badge slate" style={{ marginLeft: "6px" }}>
+                    {rawEntries.length} Total
+                  </span>
+                )}
+              </div>
+              {rawEntries.length > 4 && (
+                <div style={{ position: "relative", width: "190px" }}>
+                  <input
+                    type="text"
+                    placeholder="Search modules..."
+                    value={moduleSearch}
+                    onChange={(e) => setModuleSearch(e.target.value)}
+                    style={{
+                      minHeight: "32px",
+                      height: "32px",
+                      padding: "0 10px 0 28px",
+                      fontSize: "12px",
+                      borderRadius: "6px",
+                    }}
+                  />
+                  <Search
+                    size={13}
+                    style={{
+                      position: "absolute",
+                      left: "9px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--muted)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="chips-detailed-grid">
-              {Object.keys(entitlements).length > 0 ? (
-                Object.entries(entitlements).map(([code, val]) => {
-                  const isBool = typeof val === "boolean";
-                  const badgeClass = isBool
-                    ? val
+              {filteredEntries.length > 0 ? (
+                filteredEntries.map((item) => {
+                  const badgeClass = item.isBool
+                    ? item.val
                       ? "val-enabled"
                       : "val-disabled"
                     : "val-quota";
                   return (
-                    <div key={code} className="entitlement-pill-card">
-                      <span className="mono code">{code}</span>
+                    <div key={item.code} className="entitlement-pill-card">
+                      <span className="mono code">{item.code}</span>
                       <span className={`val-badge ${badgeClass}`}>
-                        {isBool ? (val ? "ENABLED" : "DISABLED") : String(val)}
+                        {item.isBool ? (item.val ? "ENABLED" : "DISABLED") : String(item.val)}
                       </span>
                     </div>
                   );
                 })
-              ) : license.modules.length > 0 ? (
-                license.modules.map((m) => (
-                  <div key={m.module.id} className="entitlement-pill-card">
-                    <span className="mono code">{m.module.code}</span>
-                    <span className="val-badge val-enabled">{m.module.name || "ENABLED"}</span>
-                  </div>
-                ))
+              ) : rawEntries.length > 0 ? (
+                <div className="empty-subtext" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "16px" }}>
+                  No certified modules match "{moduleSearch}"
+                </div>
               ) : (
                 <div className="empty-subtext">No individual module overrides (Default application scope)</div>
               )}
