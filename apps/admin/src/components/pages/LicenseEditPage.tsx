@@ -235,44 +235,90 @@ export function LicenseEditPage({
             </div>
 
             <div className="page-content-card">
-              <div className="card-section-head" style={{ justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div className="card-section-head" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <Cpu size={18} className="pink-icon" />
                   <h3>Module Capability Toggles</h3>
                   {capabilities.length > 0 && (
-                    <span className="badge slate" style={{ marginLeft: "6px" }}>
+                    <span className="badge slate" style={{ marginLeft: "4px" }}>
                       {capabilities.length} Total
                     </span>
                   )}
                 </div>
-                {capabilities.length > 5 && (
-                  <div style={{ position: "relative", width: "180px" }}>
-                    <input
-                      type="text"
-                      placeholder="Search modules..."
-                      value={capSearch}
-                      onChange={(e) => setCapSearch(e.target.value)}
-                      style={{
-                        minHeight: "30px",
-                        height: "30px",
-                        padding: "0 8px 0 26px",
-                        fontSize: "12px",
-                        borderRadius: "6px",
-                      }}
-                    />
-                    <Search
-                      size={13}
-                      style={{
-                        position: "absolute",
-                        left: "8px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "var(--muted)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                  </div>
-                )}
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  {capabilities.length > 0 && (
+                    <div className="select-all-btn-group" style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="btn mini-btn"
+                        onClick={() => {
+                          setEntitlements((prev) => {
+                            const updated = { ...prev };
+                            for (const c of capabilities) {
+                              if (c.type !== "integer") {
+                                updated[c.code] = true;
+                              }
+                            }
+                            return updated;
+                          });
+                        }}
+                        title="Enable all boolean modules"
+                        style={{ fontSize: "11px", padding: "4px 10px", minHeight: "30px", height: "30px" }}
+                      >
+                        ✓ Select All
+                      </button>
+                      <button
+                        type="button"
+                        className="btn mini-btn"
+                        onClick={() => {
+                          setEntitlements((prev) => {
+                            const updated = { ...prev };
+                            for (const c of capabilities) {
+                              if (c.type !== "integer") {
+                                updated[c.code] = false;
+                              }
+                            }
+                            return updated;
+                          });
+                        }}
+                        title="Disable all boolean modules"
+                        style={{ fontSize: "11px", padding: "4px 10px", minHeight: "30px", height: "30px" }}
+                      >
+                        ✕ Clear
+                      </button>
+                    </div>
+                  )}
+
+                  {capabilities.length > 5 && (
+                    <div style={{ position: "relative", width: "170px" }}>
+                      <input
+                        type="text"
+                        placeholder="Search modules..."
+                        value={capSearch}
+                        onChange={(e) => setCapSearch(e.target.value)}
+                        style={{
+                          minHeight: "30px",
+                          height: "30px",
+                          padding: "0 8px 0 26px",
+                          fontSize: "12px",
+                          borderRadius: "6px",
+                        }}
+                      />
+                      <Search
+                        size={13}
+                        style={{
+                          position: "absolute",
+                          left: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--muted)",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="capabilities-grid">
