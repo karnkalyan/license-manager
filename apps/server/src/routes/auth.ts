@@ -47,7 +47,26 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
 });
 
 authRouter.get('/me', requireAdmin, async (req, res) => {
-  const user = await prisma.adminUser.findUnique({ where: { id: req.admin!.id }, select: { id: true, username: true, role: true, tenantId: true, forcePasswordChange: true, tenant: { select: { id: true, name: true, code: true } } } });
+  const user = await prisma.adminUser.findUnique({
+    where: { id: req.admin!.id },
+    select: {
+      id: true,
+      username: true,
+      role: true,
+      tenantId: true,
+      dealerName: true,
+      dealerPhone: true,
+      dealerEmail: true,
+      forcePasswordChange: true,
+      tenant: { select: { id: true, name: true, code: true, publicId: true } },
+      dealerProducts: {
+        select: {
+          productId: true,
+          product: { select: { id: true, name: true, code: true, publicId: true } },
+        },
+      },
+    },
+  });
   return res.json(user);
 });
 

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import {
   AppWindow,
   Building2,
+  Calendar,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -12,6 +13,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Store,
   Trash2,
   X,
 } from "lucide-react";
@@ -24,6 +26,7 @@ export function LicensesView({
   onCreate,
   canManage,
   onEditModules,
+  onExtend,
   onStatus,
   onDelete,
   onViewDetails,
@@ -35,12 +38,16 @@ export function LicensesView({
   onCreate: () => void;
   canManage: boolean;
   onEditModules: (l: License) => void;
+  onExtend: (l: License) => void;
   onStatus: (id: string, s: string) => void;
   onDelete: (license: License) => void;
   onViewDetails: (l: License) => void;
   initialFilter?: string;
 }) {
   const [statusFilter, setStatusFilter] = useState<string>(initialFilter);
+  const [appFilter, setAppFilter] = useState<string>("ALL");
+  const [vendorFilter, setVendorFilter] = useState<string>("ALL");
+  const [dealerFilter, setDealerFilter] = useState<string>("ALL");
   const [groupingMode, setGroupingMode] = useState<"flat" | "app" | "vendor">("flat");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [page, setPage] = useState(1);
@@ -48,7 +55,34 @@ export function LicensesView({
 
   const pageSize = 12;
 
-  // Filter licenses by search and status
+  // Extract unique applications
+  const uniqueApps = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of licenses) {
+      if (l.product) map.set(l.product.id, l.product.name);
+    }
+    return Array.from(map.entries());
+  }, [licenses]);
+
+  // Extract unique vendors
+  const uniqueVendors = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of licenses) {
+      if (l.product?.tenant) map.set(l.product.tenant.id, l.product.tenant.name);
+    }
+    return Array.from(map.entries());
+  }, [licenses]);
+
+  // Extract unique dealers
+  const uniqueDealers = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of licenses) {
+      if (l.dealer) map.set(l.dealer.id, l.dealer.dealerName || l.dealer.username);
+    }
+    return Array.from(map.entries());
+  }, [licenses]);
+
+  // Filter licenses by search, status, app, vendor, and dealer
   const filteredLicenses = useMemo(() => {
     return licenses.filter((l) => {
       // Status Filter
@@ -60,24 +94,41 @@ export function LicensesView({
         if (!isExp) return false;
       }
 
+      // Application filter
+      if (appFilter !== "ALL" && l.product?.id !== appFilter) return false;
+
+      // Vendor filter
+      if (vendorFilter !== "ALL" && l.product?.tenant?.id !== vendorFilter) return false;
+
+      // Dealer filter
+      if (dealerFilter !== "ALL") {
+        if (dealerFilter === "DIRECT" && l.dealerId) return false;
+        if (dealerFilter !== "DIRECT" && l.dealerId !== dealerFilter) return false;
+      }
+
       // Search Query
       if (!search.trim()) return true;
       const query = search.toLowerCase();
       const haystack = [
         l.serial,
         l.customerRef ?? "",
+        l.customerTenant ?? "",
         l.metadata?.customerName ?? "",
         l.metadata?.customerEmail ?? "",
+        l.dealer?.dealerName ?? "",
+        l.dealer?.username ?? "",
         l.product?.name ?? "",
         l.product?.code ?? "",
         l.product?.tenant?.name ?? "",
         l.product?.tenant?.code ?? "",
         ...l.modules.map((m) => m.module.code),
-      ].join(" ").toLowerCase();
+      ]
+        .join(" ")
+        .toLowerCase();
 
       return haystack.includes(query);
     });
-  }, [licenses, search, statusFilter]);
+  }, [licenses, search, statusFilter, appFilter, vendorFilter, dealerFilter]);
 
   // Grouping by Application
   const groupedByApp = useMemo(() => {
@@ -142,7 +193,7 @@ export function LicensesView({
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by serial, customer, application, vendor, or module…"
+            placeholder="Search by serial, customer, tenant, application, dealer, or module…"
           />
           {search && (
             <button className="clear-search-btn" onClick={() => setSearch("")}>
@@ -150,6 +201,73 @@ export function LicensesView({
             </button>
           )}
         </div>
+
+        {/* Application Filter */}
+        {uniqueApps.length > 0 && (
+          <div className="filter-dropdown-wrap">
+            <span className="control-label">Application:</span>
+            <select
+              value={appFilter}
+              onChange={(e) => {
+                setAppFilter(e.target.value);
+                setPage(1);
+              }}
+              className="corporate-select"
+            >
+              <option value="ALL">All Applications ({uniqueApps.length})</option>
+              {uniqueApps.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Vendor Filter */}
+        {uniqueVendors.length > 0 && (
+          <div className="filter-dropdown-wrap">
+            <span className="control-label">Vendor:</span>
+            <select
+              value={vendorFilter}
+              onChange={(e) => {
+                setVendorFilter(e.target.value);
+                setPage(1);
+              }}
+              className="corporate-select"
+            >
+              <option value="ALL">All Vendors ({uniqueVendors.length})</option>
+              {uniqueVendors.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Dealer Filter */}
+        {uniqueDealers.length > 0 && (
+          <div className="filter-dropdown-wrap">
+            <span className="control-label">Dealer:</span>
+            <select
+              value={dealerFilter}
+              onChange={(e) => {
+                setDealerFilter(e.target.value);
+                setPage(1);
+              }}
+              className="corporate-select"
+            >
+              <option value="ALL">All Dealers ({uniqueDealers.length})</option>
+              <option value="DIRECT">Direct Admin Only</option>
+              {uniqueDealers.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Grouping Mode Selector */}
         <div className="group-toggle-wrap">
@@ -165,9 +283,10 @@ export function LicensesView({
               className={groupingMode === "app" ? "active" : ""}
               onClick={() => {
                 setGroupingMode("app");
-                // Expand all by default
                 const all: Record<string, boolean> = {};
-                groupedByApp.forEach(([k]) => { all[k] = true; });
+                groupedByApp.forEach(([k]) => {
+                  all[k] = true;
+                });
                 setExpandedGroups(all);
               }}
             >
@@ -178,7 +297,9 @@ export function LicensesView({
               onClick={() => {
                 setGroupingMode("vendor");
                 const all: Record<string, boolean> = {};
-                groupedByVendor.forEach(([k]) => { all[k] = true; });
+                groupedByVendor.forEach(([k]) => {
+                  all[k] = true;
+                });
                 setExpandedGroups(all);
               }}
             >
@@ -189,7 +310,7 @@ export function LicensesView({
 
         {/* Action Button */}
         {canManage && (
-          <button className="btn primary" onClick={onCreate}>
+          <button className="btn primary glow-btn" onClick={onCreate}>
             <Plus size={16} />
             <span>Issue New License</span>
           </button>
@@ -200,25 +321,37 @@ export function LicensesView({
       <div className="filter-tabs-strip">
         <button
           className={`filter-tab ${statusFilter === "ALL" ? "active" : ""}`}
-          onClick={() => { setStatusFilter("ALL"); setPage(1); }}
+          onClick={() => {
+            setStatusFilter("ALL");
+            setPage(1);
+          }}
         >
           All Licenses ({licenses.length})
         </button>
         <button
           className={`filter-tab ${statusFilter === "ACTIVE" ? "active" : ""}`}
-          onClick={() => { setStatusFilter("ACTIVE"); setPage(1); }}
+          onClick={() => {
+            setStatusFilter("ACTIVE");
+            setPage(1);
+          }}
         >
           <span className="dot dot-success" /> Active ({licenses.filter((l) => l.status === "ACTIVE").length})
         </button>
         <button
           className={`filter-tab ${statusFilter === "REVOKED" ? "active" : ""}`}
-          onClick={() => { setStatusFilter("REVOKED"); setPage(1); }}
+          onClick={() => {
+            setStatusFilter("REVOKED");
+            setPage(1);
+          }}
         >
           <span className="dot dot-danger" /> Revoked ({licenses.filter((l) => l.status === "REVOKED").length})
         </button>
         <button
           className={`filter-tab ${statusFilter === "EXPIRED" ? "active" : ""}`}
-          onClick={() => { setStatusFilter("EXPIRED"); setPage(1); }}
+          onClick={() => {
+            setStatusFilter("EXPIRED");
+            setPage(1);
+          }}
         >
           <span className="dot dot-warning" /> Expired (
           {licenses.filter((l) => l.expiresAt && new Date(l.expiresAt).getTime() < Date.now()).length})
@@ -234,10 +367,7 @@ export function LicensesView({
 
             return (
               <div key={appId} className="accordion-card">
-                <div
-                  className="accordion-header"
-                  onClick={() => toggleGroup(appId)}
-                >
+                <div className="accordion-header" onClick={() => toggleGroup(appId)}>
                   <div className="accordion-left">
                     <div className="product-icon">
                       <AppWindow size={18} />
@@ -247,9 +377,7 @@ export function LicensesView({
                         <strong>{group.appName}</strong>
                         <span className="mono app-code-pill">{group.appCode}</span>
                       </div>
-                      <span className="accordion-subtitle">
-                        Vendor: {group.vendorName}
-                      </span>
+                      <span className="accordion-subtitle">Vendor: {group.vendorName}</span>
                     </div>
                   </div>
 
@@ -269,7 +397,8 @@ export function LicensesView({
                         <thead>
                           <tr>
                             <th>License Serial</th>
-                            <th>Customer / Organization</th>
+                            <th>Customer / Tenant</th>
+                            <th>Dealer / Franchise</th>
                             <th>Modules</th>
                             <th>Seats Used</th>
                             <th>Expiration</th>
@@ -287,6 +416,7 @@ export function LicensesView({
                               onCopy={copySerial}
                               onViewDetails={onViewDetails}
                               onEditModules={onEditModules}
+                              onExtend={onExtend}
                               onStatus={onStatus}
                               onDelete={onDelete}
                             />
@@ -314,10 +444,7 @@ export function LicensesView({
 
             return (
               <div key={vendorId} className="accordion-card">
-                <div
-                  className="accordion-header"
-                  onClick={() => toggleGroup(vendorId)}
-                >
+                <div className="accordion-header" onClick={() => toggleGroup(vendorId)}>
                   <div className="accordion-left">
                     <div className="product-icon">
                       <Building2 size={18} />
@@ -327,9 +454,7 @@ export function LicensesView({
                         <strong>{group.vendorName}</strong>
                         <span className="mono app-code-pill">{group.vendorCode}</span>
                       </div>
-                      <span className="accordion-subtitle">
-                        Tenant Namespace
-                      </span>
+                      <span className="accordion-subtitle">Tenant Namespace</span>
                     </div>
                   </div>
 
@@ -349,9 +474,9 @@ export function LicensesView({
                         <thead>
                           <tr>
                             <th>License Serial</th>
-                            <th>Customer / Organization</th>
+                            <th>Customer / Tenant</th>
                             <th>Application</th>
-                            <th>Modules</th>
+                            <th>Dealer</th>
                             <th>Seats</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -367,6 +492,7 @@ export function LicensesView({
                               onCopy={copySerial}
                               onViewDetails={onViewDetails}
                               onEditModules={onEditModules}
+                              onExtend={onExtend}
                               onStatus={onStatus}
                               onDelete={onDelete}
                               showApp
@@ -394,9 +520,9 @@ export function LicensesView({
               <thead>
                 <tr>
                   <th>License Serial</th>
-                  <th>Customer / Client</th>
+                  <th>Customer / Tenant</th>
                   <th>Vendor & Application</th>
-                  <th>Modules</th>
+                  <th>Dealer / Reseller</th>
                   <th>Seats</th>
                   <th>Expiration</th>
                   <th>Status</th>
@@ -413,6 +539,7 @@ export function LicensesView({
                     onCopy={copySerial}
                     onViewDetails={onViewDetails}
                     onEditModules={onEditModules}
+                    onExtend={onExtend}
                     onStatus={onStatus}
                     onDelete={onDelete}
                     showVendor
@@ -431,8 +558,7 @@ export function LicensesView({
             <div className="corporate-pagination">
               <span>
                 Showing {(page - 1) * pageSize + 1}–
-                {Math.min(page * pageSize, filteredLicenses.length)} of{" "}
-                {filteredLicenses.length} licenses
+                {Math.min(page * pageSize, filteredLicenses.length)} of {filteredLicenses.length} licenses
               </span>
               <div className="pagination-buttons">
                 <button
@@ -468,6 +594,7 @@ function LicenseRow({
   onCopy,
   onViewDetails,
   onEditModules,
+  onExtend,
   onStatus,
   onDelete,
   showVendor = false,
@@ -479,18 +606,21 @@ function LicenseRow({
   onCopy: (serial: string, e: React.MouseEvent) => void;
   onViewDetails: (l: License) => void;
   onEditModules: (l: License) => void;
+  onExtend: (l: License) => void;
   onStatus: (id: string, s: string) => void;
   onDelete: (license: License) => void;
   showVendor?: boolean;
   showApp?: boolean;
 }) {
   const isCopied = copiedId === license.serial;
+  const isExp = license.expiresAt && new Date(license.expiresAt).getTime() < Date.now();
+  const effectiveStatus = isExp && license.status === "ACTIVE" ? "EXPIRED" : license.status;
 
   return (
     <tr key={license.id} onClick={() => onViewDetails(license)} className="clickable-row">
       <td data-label="License">
         <div className="serial-cell">
-          <strong className="mono license-serial">{license.serial}</strong>
+          <strong className="mono pink-text license-serial font-bold">{license.serial}</strong>
           <button
             className="copy-icon-btn"
             onClick={(e) => onCopy(license.serial, e)}
@@ -506,28 +636,27 @@ function LicenseRow({
       </td>
 
       <td data-label="Customer">
-        <strong>{license.metadata?.customerName || license.customerRef || "Unassigned"}</strong>
+        <strong>
+          {license.customerTenant || license.metadata?.customerName || license.customerRef || "Standard Client"}
+        </strong>
         <span className="sub-detail">
-          {license.metadata?.customerEmail || "No email specified"}
+          {license.metadata?.customerEmail || (license.customerTenant ? `Tenant: ${license.customerTenant}` : "No email")}
         </span>
       </td>
 
       {(showVendor || showApp) && (
         <td data-label="Application">
-          {showVendor && <strong>{license.product?.tenant?.name}</strong>}
+          {showVendor && <strong className="block-line">{license.product?.tenant?.name}</strong>}
           {showApp && <span>{license.product?.name}</span>}
         </td>
       )}
 
-      <td data-label="Modules">
-        <div className="chips">
-          {license.modules.map((m) => (
-            <span className="chip" key={m.module.id}>
-              {m.module.code}
-            </span>
-          ))}
-          {!license.modules.length && <span className="muted">Default</span>}
-        </div>
+      <td data-label="Dealer">
+        {license.dealer ? (
+          <span className="badge slate">{license.dealer.dealerName || license.dealer.username}</span>
+        ) : (
+          <span className="sub-detail">Direct Admin</span>
+        )}
       </td>
 
       <td data-label="Seats">
@@ -537,17 +666,13 @@ function LicenseRow({
       </td>
 
       <td data-label="Expiration">
-        <span>
-          {license.expiresAt
-            ? new Date(license.expiresAt).toLocaleDateString()
-            : "Perpetual"}
+        <span className={isExp ? "text-danger font-bold" : ""}>
+          {license.expiresAt ? new Date(license.expiresAt).toLocaleDateString() : "Perpetual"}
         </span>
       </td>
 
       <td data-label="Status">
-        <span className={`badge ${license.status.toLowerCase()}`}>
-          {license.status}
-        </span>
+        <span className={`badge ${effectiveStatus.toLowerCase()}`}>{effectiveStatus}</span>
       </td>
 
       <td data-label="Actions" onClick={(e) => e.stopPropagation()}>
@@ -563,10 +688,20 @@ function LicenseRow({
           {canManage && (
             <button
               className="btn action-btn"
+              onClick={() => onExtend(license)}
+              title="Extend expiration date"
+            >
+              <Calendar size={14} /> Extend
+            </button>
+          )}
+
+          {canManage && (
+            <button
+              className="btn action-btn"
               onClick={() => onEditModules(license)}
               title="Edit module capabilities & reissue key"
             >
-              Reissue
+              <RefreshCw size={14} /> Reissue
             </button>
           )}
 

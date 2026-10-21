@@ -1,14 +1,10 @@
 import { useState, useMemo } from "react";
 import {
-  AppWindow,
   Building2,
   Copy,
   Eye,
-  KeyRound,
   Plus,
   Search,
-  ShieldAlert,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import type { License, Product, Tenant } from "../types";
@@ -33,6 +29,8 @@ export function TenantsView({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t) => {
@@ -49,6 +47,9 @@ export function TenantsView({
     });
   }, [tenants, search, statusFilter]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / pageSize));
+  const paginated = filteredTenants.slice((page - 1) * pageSize, page * pageSize);
+
   const copyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(id);
@@ -63,7 +64,10 @@ export function TenantsView({
           <Search size={16} className="search-icon" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search vendors by organization name, code, or namespace UUID…"
           />
           {search && (
@@ -77,7 +81,10 @@ export function TenantsView({
           <span className="control-label">Status:</span>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             className="corporate-select"
           >
             <option value="ALL">All Statuses ({tenants.length})</option>
@@ -87,7 +94,7 @@ export function TenantsView({
         </div>
 
         {canManage && (
-          <button className="btn primary" onClick={onCreate}>
+          <button className="btn primary glow-btn" onClick={onCreate}>
             <Plus size={16} />
             <span>Add Vendor / Tenant</span>
           </button>
@@ -95,7 +102,7 @@ export function TenantsView({
       </div>
 
       <div className="tenant-cards-grid">
-        {filteredTenants.map((t) => {
+        {paginated.map((t) => {
           const vendorApps = products.filter((p) => p.tenant?.id === t.id);
           const vendorLicenses = licenses.filter((l) => l.product?.tenant?.id === t.id);
           const activeLicenses = vendorLicenses.filter((l) => l.status === "ACTIVE").length;
@@ -104,7 +111,7 @@ export function TenantsView({
           return (
             <div
               key={t.id}
-              className="tenant-corporate-card"
+              className="tenant-corporate-card clickable-card"
               onClick={() => onViewDetails(t)}
             >
               <div className="tenant-card-header">
@@ -184,9 +191,30 @@ export function TenantsView({
 
       {!filteredTenants.length && (
         <div className="empty-view">
-          <Building2 size={32} className="empty-icon" />
+          <Building2 size={36} className="empty-icon" />
           <h3>No vendors match the filter</h3>
           <p>Create a vendor organization to set up isolated tenant workspaces.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="corporate-pagination">
+          <span>
+            Showing {(page - 1) * pageSize + 1}–
+            {Math.min(page * pageSize, filteredTenants.length)} of {filteredTenants.length} vendors
+          </span>
+          <div className="pagination-buttons">
+            <button className="btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </button>
+            <span className="page-indicator">
+              Page {page} of {totalPages}
+            </span>
+            <button className="btn" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

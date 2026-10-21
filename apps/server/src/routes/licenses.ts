@@ -6,6 +6,7 @@ import { requireAdmin, requireRoles } from "../security/authMiddleware.js";
 import { audit } from "../services/audit.js";
 import {
   createLicense,
+  extendLicenseDate,
   findActiveLicenseForInstallation,
   reissueCurrentLicense,
   reissueLicenseModules,
@@ -25,19 +26,32 @@ const includeLicense = {
   product: {
     include: { tenant: true, modules: { orderBy: { code: "asc" as const } } },
   },
+  dealer: {
+    select: { id: true, username: true, dealerName: true, dealerPhone: true, dealerEmail: true },
+  },
   modules: { include: { module: true } },
   activations: true,
 };
 
 licensesRouter.get("/", async (req, res) => {
+  const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const dealerFilter = typeof req.query.dealerId === "string" ? req.query.dealerId : undefined;
+  const vendorFilter = typeof req.query.tenantId === "string" ? req.query.tenantId : undefined;
+  const appFilter = typeof req.query.productId === "string" ? req.query.productId : undefined;
+  const statusFilter = typeof req.query.status === "string" ? req.query.status : undefined;
+
   const licenses = await prisma.license.findMany({
     where: {
-      ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}),
+      ...(isDealer ? { dealerId: req.admin!.id } : dealerFilter ? { dealerId: dealerFilter } : {}),
+      ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : vendorFilter ? { product: { tenantId: vendorFilter } } : {}),
+      ...(appFilter ? { productId: appFilter } : {}),
+      ...(statusFilter && statusFilter !== "ALL" ? { status: statusFilter as any } : {}),
       ...(q ? {
           OR: [
             { serial: { contains: q } },
             { customerRef: { contains: q } },
+            { customerTenant: { contains: q } },
             { product: { name: { contains: q } } },
             {
               product: {
@@ -49,7 +63,7 @@ licensesRouter.get("/", async (req, res) => {
     },
     include: includeLicense,
     orderBy: { createdAt: "desc" },
-    take: 250,
+    take: 500,
   });
   const now = Date.now();
   res.json(
@@ -65,8 +79,9 @@ licensesRouter.get("/", async (req, res) => {
 
 licensesRouter.post(
   "/",
-  requireRoles("SUPER_ADMIN", "ADMIN"),
+  requireRoles("SUPER_ADMIN", "ADMIN", "DEALER", "FRANCHISE"),
   async (req, res) => {
+    const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
     const parsed = z
       .object({
         provisioningId: z.string().min(1).max(8192),
@@ -78,8 +93,10 @@ licensesRouter.post(
           )
           .default({}),
         customerRef: z.string().max(120).optional(),
+        customerTenant: z.string().max(120).optional(),
         customerName: z.string().min(2).max(120).optional(),
         customerEmail: z.string().email().max(254).optional(),
+        dealerId: z.string().optional().nullable(),
         autoActivate: z.boolean().default(true),
         expiresAt: z.coerce
           .date()
@@ -102,6 +119,19 @@ licensesRouter.post(
       const { payload, product } = await resolveProvisioningApplication(
         parsed.data.provisioningId,
       );
+
+      // Verify dealer product assignment
+      if (isDealer) {
+        const assigned = await prisma.dealerProduct.findFirst({
+          where: { userId: req.admin!.id, productId: product.id },
+        });
+        if (!assigned) {
+          return res.status(403).json({
+            error: `Application '${product.name}' is not assigned to your dealer/franchise account. You cannot issue licenses for it.`,
+          });
+        }
+      }
+
       const entitlements = validateClientEntitlements(
         payload,
         parsed.data.entitlements,
@@ -117,6 +147,8 @@ licensesRouter.post(
         entitlements,
         hwid: payload.hwid,
         customerRef: parsed.data.customerRef || parsed.data.customerName,
+        customerTenant: parsed.data.customerTenant,
+        dealerId: isDealer ? req.admin!.id : parsed.data.dealerId || undefined,
         metadata: {
           ...(parsed.data.metadata || {}),
           provisioningId: parsed.data.provisioningId,
@@ -170,9 +202,10 @@ licensesRouter.post(
 
 licensesRouter.post(
   "/:id/modules",
-  requireRoles("SUPER_ADMIN", "ADMIN"),
+  requireRoles("SUPER_ADMIN", "ADMIN", "DEALER", "FRANCHISE"),
   async (req, res) => {
     const id = req.params.id as string;
+    const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
     const parsed = z
       .object({
         provisioningId: z.string().min(1).max(8192).optional(),
@@ -198,9 +231,22 @@ licensesRouter.post(
       return res.status(400).json({ error: "Invalid module selection" });
     try {
       const current = await prisma.license.findFirstOrThrow({
-        where: { id, ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}) },
+        where: {
+          id,
+          ...(isDealer ? { dealerId: req.admin!.id } : {}),
+          ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}),
+        },
         include: { product: { include: { tenant: true, modules: true } } },
       });
+
+      if (isDealer) {
+        const assigned = await prisma.dealerProduct.findFirst({
+          where: { userId: req.admin!.id, productId: current.productId },
+        });
+        if (!assigned) {
+          return res.status(403).json({ error: "Application is not assigned to your dealer account" });
+        }
+      }
       const currentMetadata =
         current.metadata &&
         typeof current.metadata === "object" &&
@@ -317,10 +363,97 @@ licensesRouter.post(
 );
 
 licensesRouter.post(
-  "/:id/status",
-  requireRoles("SUPER_ADMIN", "ADMIN"),
+  "/:id/extend",
+  requireRoles("SUPER_ADMIN", "ADMIN", "DEALER", "FRANCHISE"),
   async (req, res) => {
     const id = req.params.id as string;
+    const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
+
+    const parsed = z
+      .object({
+        days: z.coerce.number().int().min(1).max(3650).optional(),
+        expiresAt: z.coerce.date().optional(),
+        customerRef: z.string().max(120).optional(),
+      })
+      .refine((data) => data.days !== undefined || data.expiresAt !== undefined, {
+        message: "Either 'days' or 'expiresAt' must be specified",
+      })
+      .safeParse(req.body);
+
+    if (!parsed.success)
+      return res.status(400).json({ error: "Invalid extension parameters", details: parsed.error.flatten() });
+
+    const license = await prisma.license.findFirstOrThrow({
+      where: {
+        id,
+        ...(isDealer ? { dealerId: req.admin!.id } : {}),
+        ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}),
+      },
+      include: { product: { include: { tenant: true } }, activations: true },
+    });
+
+    if (isDealer) {
+      const assigned = await prisma.dealerProduct.findFirst({
+        where: { userId: req.admin!.id, productId: license.productId },
+      });
+      if (!assigned) {
+        return res.status(403).json({ error: "Application is not assigned to your dealer account" });
+      }
+    }
+
+    let nextExpiresAt: Date;
+    if (parsed.data.expiresAt) {
+      nextExpiresAt = parsed.data.expiresAt;
+    } else {
+      const currentBase = license.expiresAt && license.expiresAt.getTime() > Date.now()
+        ? license.expiresAt.getTime()
+        : Date.now();
+      nextExpiresAt = new Date(currentBase + parsed.data.days! * 24 * 60 * 60 * 1000);
+    }
+
+    const extended = await extendLicenseDate(id, nextExpiresAt, parsed.data.customerRef);
+
+    // Push live update to connected clients
+    await Promise.all(
+      extended.activations.map(async (a) => {
+        await pushLicenseEvent(
+          a.clientId,
+          "LICENSE_KEY_REISSUED",
+          `License validity extended until ${nextExpiresAt.toLocaleDateString()}`,
+        );
+        deliverProvisionedLicense(
+          {
+            clientId: a.clientId,
+            tenantId: extended.product.tenant.publicId,
+            applicationId: extended.product.publicId,
+            hwid: "",
+          },
+          extended.jwtKey,
+        );
+      }),
+    );
+
+    await audit(req, {
+      action: "LICENSE_EXTENDED",
+      entityType: "License",
+      entityId: id,
+      details: {
+        serial: license.serial,
+        previousExpiry: license.expiresAt?.toISOString() ?? "Perpetual",
+        newExpiry: nextExpiresAt.toISOString(),
+      },
+    });
+
+    res.json(extended);
+  },
+);
+
+licensesRouter.post(
+  "/:id/status",
+  requireRoles("SUPER_ADMIN", "ADMIN", "DEALER", "FRANCHISE"),
+  async (req, res) => {
+    const id = req.params.id as string;
+    const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
     const parsed = z
       .object({
         status: z.enum(["ACTIVE", "SUSPENDED", "REVOKED"]),
@@ -330,9 +463,22 @@ licensesRouter.post(
     if (!parsed.success)
       return res.status(400).json({ error: "Invalid status" });
     const permitted = await prisma.license.findFirstOrThrow({
-      where: { id, ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}) },
-      select: { id: true },
+      where: {
+        id,
+        ...(isDealer ? { dealerId: req.admin!.id } : {}),
+        ...(req.admin!.tenantId ? { product: { tenantId: req.admin!.tenantId } } : {}),
+      },
+      select: { id: true, productId: true },
     });
+
+    if (isDealer) {
+      const assigned = await prisma.dealerProduct.findFirst({
+        where: { userId: req.admin!.id, productId: permitted.productId },
+      });
+      if (!assigned) {
+        return res.status(403).json({ error: "Application is not assigned to your dealer account" });
+      }
+    }
     const license = await prisma.license.update({
       where: { id: permitted.id },
       data: {

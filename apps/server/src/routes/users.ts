@@ -9,7 +9,7 @@ import { audit } from "../services/audit.js";
 export const usersRouter = Router();
 usersRouter.use(requireAdmin, requireRoles("SUPER_ADMIN", "ADMIN"));
 
-const roleSchema = z.enum(["SUPER_ADMIN", "ADMIN", "SUPPORT", "MONITORING", "VENDOR", "AUDITOR"]);
+const roleSchema = z.enum(["SUPER_ADMIN", "ADMIN", "SUPPORT", "MONITORING", "VENDOR", "AUDITOR", "DEALER", "FRANCHISE"]);
 
 function canAssign(actorRole: UserRole, role: UserRole) {
   return actorRole === "SUPER_ADMIN" || role !== "SUPER_ADMIN";

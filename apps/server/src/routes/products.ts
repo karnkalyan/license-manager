@@ -9,8 +9,12 @@ export const productsRouter = Router();
 productsRouter.use(requireAdmin);
 
 productsRouter.get("/", async (req, res) => {
+  const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
   const products = await prisma.product.findMany({
-    where: req.admin!.tenantId ? { tenantId: req.admin!.tenantId } : undefined,
+    where: {
+      ...(req.admin!.tenantId ? { tenantId: req.admin!.tenantId } : {}),
+      ...(isDealer ? { dealerAssignments: { some: { userId: req.admin!.id } } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: {
       tenant: true,

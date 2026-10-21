@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   AppWindow,
+  BookOpen,
   Building2,
   FileClock,
   KeyRound,
@@ -12,7 +13,9 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  Store,
   Sun,
+  Terminal,
   UserCog,
   Users,
   X,
@@ -20,12 +23,15 @@ import {
 import { ADMIN_UNAUTHORIZED_EVENT, api } from "./lib/api";
 import type {
   Activation,
+  ApiKey,
   Audit,
   Dashboard,
+  Dealer,
   License,
   ManagedUser,
   Product,
   SessionUser,
+  Subpage,
   Tenant,
   View,
 } from "./types";
@@ -34,20 +40,26 @@ import { ClientsView } from "./components/ClientsView";
 import { DashboardView } from "./components/DashboardView";
 import { LicensesView } from "./components/LicensesView";
 import { ChangePasswordView, LoginView } from "./components/LoginView";
-import {
-  ApplicationDetailsModal,
-  BanClientModal,
-  ClientDetailsModal,
-  CreateApplication,
-  CreateLicense,
-  CreateTenant,
-  CreateUser,
-  LicenseDetailsModal,
-  ReissueModules,
-  VendorDetailsModal,
-} from "./components/Modals";
 import { TenantsView } from "./components/TenantsView";
 import { AuditView, UsersView } from "./components/UsersAndAudit";
+import { DealersView } from "./components/DealersView";
+import { ApiKeysView } from "./components/ApiKeysView";
+
+// Page-wise responsive views (no modal popups)
+import { CreateLicensePage } from "./components/pages/CreateLicensePage";
+import { LicenseDetailsPage } from "./components/pages/LicenseDetailsPage";
+import { LicenseExtendPage } from "./components/pages/LicenseExtendPage";
+import { LicenseEditPage } from "./components/pages/LicenseEditPage";
+import { CreateApplicationPage } from "./components/pages/CreateApplicationPage";
+import { ApplicationDetailsPage } from "./components/pages/ApplicationDetailsPage";
+import { CreateTenantPage } from "./components/pages/CreateTenantPage";
+import { TenantDetailsPage } from "./components/pages/TenantDetailsPage";
+import { ClientDetailsPage } from "./components/pages/ClientDetailsPage";
+import { CreateDealerPage } from "./components/pages/CreateDealerPage";
+import { DealerDetailsPage } from "./components/pages/DealerDetailsPage";
+import { CreateUserPage } from "./components/pages/CreateUserPage";
+import { CreateApiKeyPage } from "./components/pages/CreateApiKeyPage";
+import { ApiDocsPage } from "./components/pages/ApiDocsPage";
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -57,6 +69,7 @@ export default function App() {
     () => (localStorage.getItem("lm_theme") as "light" | "dark") || "light",
   );
   const [view, setView] = useState<View>("dashboard");
+  const [subpage, setSubpage] = useState<Subpage>({ type: "none" });
   const [mobile, setMobile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState("");
@@ -69,24 +82,12 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [dealers, setDealers] = useState<Dealer[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
   // Search & Navigation filters
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("ALL");
-
-  // Operational Modals
-  const [showLicense, setShowLicense] = useState(false);
-  const [showTenant, setShowTenant] = useState(false);
-  const [showApp, setShowApp] = useState(false);
-  const [showUser, setShowUser] = useState(false);
-  const [banTarget, setBanTarget] = useState<Activation | null>(null);
-  const [editLicense, setEditLicense] = useState<License | null>(null);
-
-  // Detailed Inspection Modals
-  const [detailsLicense, setDetailsLicense] = useState<License | null>(null);
-  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
-  const [detailsTenant, setDetailsTenant] = useState<Tenant | null>(null);
-  const [detailsClient, setDetailsClient] = useState<Activation | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -98,7 +99,7 @@ export default function App() {
       setAuthenticated(false);
       setMustChange(false);
       setSession(null);
-      setShowLicense(false);
+      setSubpage({ type: "none" });
     };
     window.addEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
     return () => window.removeEventListener(ADMIN_UNAUTHORIZED_EVENT, expired);
@@ -123,7 +124,7 @@ export default function App() {
     setBusy(true);
     try {
       const canManageUsers = session?.role === "SUPER_ADMIN" || session?.role === "ADMIN";
-      const [d, l, c, t, p, a, u] = await Promise.all([
+      const [d, l, c, t, p, a, u, dl, k] = await Promise.all([
         api<Dashboard>("/dashboard"),
         api<License[]>("/licenses"),
         api<Activation[]>("/clients"),
@@ -131,6 +132,8 @@ export default function App() {
         api<Product[]>("/applications"),
         api<Audit[]>("/audit"),
         canManageUsers ? api<ManagedUser[]>("/users") : Promise.resolve([]),
+        api<Dealer[]>("/dealers").catch(() => []),
+        api<ApiKey[]>("/api-keys").catch(() => []),
       ]);
       setDash(d);
       setLicenses(l);
@@ -139,6 +142,8 @@ export default function App() {
       setProducts(p);
       setAudits(a);
       setUsers(u);
+      setDealers(dl);
+      setApiKeys(k);
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Load failed");
     } finally {
@@ -160,6 +165,7 @@ export default function App() {
     setAuthenticated(false);
     setMustChange(false);
     setSession(null);
+    setSubpage({ type: "none" });
   }
 
   const done = (message: string) => {
@@ -170,6 +176,7 @@ export default function App() {
   // Clickable widget navigation handler
   const handleNavigate = (targetView: View, filter = "ALL") => {
     setView(targetView);
+    setSubpage({ type: "none" });
     setActiveFilter(filter);
     if (filter !== "ALL" && filter !== "ONLINE" && filter !== "ACTIVE" && filter !== "REVOKED") {
       setSearch(filter);
@@ -189,7 +196,7 @@ export default function App() {
             <ShieldCheck size={28} />
           </div>
           <h2>Verifying Security Session…</h2>
-          <p>Connecting to secure licensing enclave.</p>
+          <p>Connecting to Kashtrix Deep Enclave.</p>
         </div>
       </div>
     );
@@ -213,6 +220,7 @@ export default function App() {
     return <ChangePasswordView onDone={() => setMustChange(false)} />;
   }
 
+  const isDealer = session?.role === "DEALER" || session?.role === "FRANCHISE";
   const canAdminister = session?.role === "SUPER_ADMIN" || session?.role === "ADMIN";
   const canSupport = canAdminister || session?.role === "SUPPORT";
 
@@ -220,12 +228,12 @@ export default function App() {
     ["dashboard", "Overview", LayoutDashboard],
     ["licenses", "Licenses", KeyRound],
     ["clients", "Client Monitoring", Users],
-    ["tenants", "Vendors / Tenants", Building2],
-    ["applications", "Applications", AppWindow],
-    ...(canAdminister
-      ? ([["users", "Users & Roles", UserCog]] as [View, string, React.ElementType][])
-      : []),
-    ["audit", "Audit Trail", FileClock],
+    ...(!isDealer ? ([["tenants", "Vendors / Tenants", Building2]] as [View, string, React.ElementType][]) : []),
+    ["applications", isDealer ? "Assigned Products" : "Applications", AppWindow],
+    ...(canAdminister ? ([["dealers", "Dealers & Franchises", Store]] as [View, string, React.ElementType][]) : []),
+    ["api-keys", "API Enclave & Keys", Terminal],
+    ...(canAdminister ? ([["users", "Users & Roles", UserCog]] as [View, string, React.ElementType][]) : []),
+    ...(!isDealer ? ([["audit", "Audit Trail", FileClock]] as [View, string, React.ElementType][]) : []),
   ];
 
   const onlineSessionsCount = dash?.online ?? clients.filter((c) => c.socketOnline).length;
@@ -248,9 +256,10 @@ export default function App() {
           {navItems.map(([v, label, IconComponent]) => (
             <button
               key={v}
-              className={`nav-button ${view === v ? "active" : ""}`}
+              className={`nav-button ${view === v && subpage.type === "none" ? "active" : ""}`}
               onClick={() => {
                 setView(v);
+                setSubpage({ type: "none" });
                 setActiveFilter("ALL");
                 setMobile(false);
               }}
@@ -311,9 +320,19 @@ export default function App() {
                 <span>Kashtrix</span>
                 <span className="bread-sep">/</span>
                 <span className="bread-current">{view}</span>
+                {subpage.type !== "none" && (
+                  <>
+                    <span className="bread-sep">/</span>
+                    <span className="bread-current subpage-current">{subpage.type.replace("-", " ")}</span>
+                  </>
+                )}
                 <span className="role-pill">
-                  {session?.tenant?.name ? session.tenant.name : "Multi-Vendor Global"} ·{" "}
-                  {session?.role.replaceAll("_", " ")}
+                  {session?.dealerName
+                    ? `${session.role === "FRANCHISE" ? "Franchise" : "Dealer"}: ${session.dealerName}`
+                    : session?.tenant?.name
+                      ? session.tenant.name
+                      : "Multi-Vendor Global"}{" "}
+                  · {session?.role.replaceAll("_", " ")}
                 </span>
               </div>
             </div>
@@ -361,9 +380,201 @@ export default function App() {
           </div>
         </header>
 
-        {/* View Body */}
+        {/* View Body: Render Subpage or Main View */}
         <div className="corporate-view-body">
-          {view === "dashboard" && (
+          {/* Subpages: Page-wise Views (Strictly No Modal Popups) */}
+          {subpage.type === "create-license" && (
+            <CreateLicensePage
+              dealers={dealers}
+              products={products}
+              tenants={tenants}
+              session={session}
+              defaultProduct={subpage.defaultProduct}
+              onBack={() => setSubpage({ type: "none" })}
+              onDone={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "license-details" && (
+            <LicenseDetailsPage
+              license={subpage.license}
+              canManage={canAdminister}
+              onBack={() => setSubpage({ type: "none" })}
+              onEditModules={(l) => setSubpage({ type: "license-edit", license: l })}
+              onExtend={(l) => setSubpage({ type: "license-extend", license: l })}
+              onStatus={async (id, status) => {
+                await api(`/licenses/${id}/status`, {
+                  method: "POST",
+                  body: JSON.stringify({ status }),
+                });
+                done(`License status updated to ${status.toLowerCase()}`);
+                setSubpage({ type: "none" });
+              }}
+              onDelete={async (l) => {
+                if (!window.confirm(`Permanently delete license ${l.serial}?`)) return;
+                await api(`/licenses/${l.id}`, { method: "DELETE" });
+                done("License deleted");
+                setSubpage({ type: "none" });
+              }}
+            />
+          )}
+
+          {subpage.type === "license-extend" && (
+            <LicenseExtendPage
+              license={subpage.license}
+              onBack={() => setSubpage({ type: "none" })}
+              onDone={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "license-edit" && (
+            <LicenseEditPage
+              license={subpage.license}
+              onBack={() => setSubpage({ type: "none" })}
+              onDone={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "create-application" && (
+            <CreateApplicationPage
+              tenants={tenants}
+              onBack={() => setSubpage({ type: "none" })}
+              onCreated={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "application-details" && (
+            <ApplicationDetailsPage
+              product={subpage.product}
+              licenses={licenses}
+              clients={clients}
+              canManage={canAdminister}
+              onBack={() => setSubpage({ type: "none" })}
+              onIssueLicense={(p) => setSubpage({ type: "create-license", defaultProduct: p })}
+            />
+          )}
+
+          {subpage.type === "create-tenant" && (
+            <CreateTenantPage
+              onBack={() => setSubpage({ type: "none" })}
+              onCreated={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "tenant-details" && (
+            <TenantDetailsPage
+              tenant={subpage.tenant}
+              products={products}
+              licenses={licenses}
+              canManage={canAdminister}
+              onBack={() => setSubpage({ type: "none" })}
+              onStatus={async (t, status) => {
+                await api(`/tenants/${t.id}/status`, {
+                  method: "POST",
+                  body: JSON.stringify({ status }),
+                });
+                done(`Vendor ${status.toLowerCase()}`);
+                setSubpage({ type: "none" });
+              }}
+            />
+          )}
+
+          {subpage.type === "client-details" && (
+            <ClientDetailsPage
+              client={subpage.client}
+              canSupport={canSupport}
+              canManage={canAdminister}
+              onBack={() => setSubpage({ type: "none" })}
+              onRevalidate={async (c) => {
+                await api(`/clients/${c.clientId}/revalidate`, { method: "POST" });
+                setToast("Signed revalidation challenge dispatched");
+              }}
+              onBan={async (c, reason) => {
+                await api(`/clients/${c.clientId}/ban`, {
+                  method: "POST",
+                  body: JSON.stringify({ reason }),
+                });
+                done("Client installation banned");
+                setSubpage({ type: "none" });
+              }}
+              onUnban={async (c) => {
+                await api(`/clients/${c.clientId}/unban`, { method: "POST" });
+                done("Client unbanned");
+                setSubpage({ type: "none" });
+              }}
+            />
+          )}
+
+          {subpage.type === "create-dealer" && (
+            <CreateDealerPage
+              products={products}
+              tenants={tenants}
+              onBack={() => setSubpage({ type: "none" })}
+              onCreated={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "dealer-details" && (
+            <DealerDetailsPage
+              dealer={subpage.dealer}
+              products={products}
+              canManage={canAdminister}
+              onBack={() => setSubpage({ type: "none" })}
+              onDone={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "create-user" && (
+            <CreateUserPage
+              tenants={tenants}
+              isSuperAdmin={session?.role === "SUPER_ADMIN"}
+              onBack={() => setSubpage({ type: "none" })}
+              onCreated={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "create-api-key" && (
+            <CreateApiKeyPage
+              dealers={dealers}
+              session={session}
+              onBack={() => setSubpage({ type: "none" })}
+              onCreated={(msg) => {
+                setSubpage({ type: "none" });
+                done(msg);
+              }}
+            />
+          )}
+
+          {subpage.type === "api-docs" && (
+            <ApiDocsPage onBack={() => setSubpage({ type: "none" })} />
+          )}
+
+          {/* Main Views (Shown only when no subpage is active) */}
+          {subpage.type === "none" && view === "dashboard" && (
             <DashboardView
               dash={dash}
               clients={clients}
@@ -372,19 +583,20 @@ export default function App() {
               products={products}
               licenses={licenses}
               onNavigate={handleNavigate}
-              onSelectClient={(client) => setDetailsClient(client)}
+              onSelectClient={(client) => setSubpage({ type: "client-details", client })}
             />
           )}
 
-          {view === "licenses" && (
+          {subpage.type === "none" && view === "licenses" && (
             <LicensesView
               licenses={licenses}
               search={search}
               setSearch={setSearch}
-              onCreate={() => setShowLicense(true)}
-              canManage={canAdminister}
-              onEditModules={(l) => setEditLicense(l)}
-              onViewDetails={(l) => setDetailsLicense(l)}
+              onCreate={() => setSubpage({ type: "create-license" })}
+              canManage={canAdminister || isDealer}
+              onEditModules={(l) => setSubpage({ type: "license-edit", license: l })}
+              onExtend={(l) => setSubpage({ type: "license-extend", license: l })}
+              onViewDetails={(l) => setSubpage({ type: "license-details", license: l })}
               initialFilter={activeFilter}
               onStatus={async (id, status) => {
                 await api(`/licenses/${id}/status`, {
@@ -413,19 +625,19 @@ export default function App() {
             />
           )}
 
-          {view === "clients" && (
+          {subpage.type === "none" && view === "clients" && (
             <ClientsView
               clients={clients}
               canSupport={canSupport}
               canManage={canAdminister}
               initialFilter={activeFilter}
-              onViewDetails={(client) => setDetailsClient(client)}
+              onViewDetails={(client) => setSubpage({ type: "client-details", client })}
               onBan={async (c) => {
                 if (c.state === "BANNED") {
                   await api(`/clients/${c.clientId}/unban`, { method: "POST" });
                   done("Client unbanned");
                 } else {
-                  setBanTarget(c);
+                  setSubpage({ type: "client-details", client: c });
                 }
               }}
               onRevalidate={async (c) => {
@@ -437,14 +649,14 @@ export default function App() {
             />
           )}
 
-          {view === "tenants" && (
+          {subpage.type === "none" && view === "tenants" && (
             <TenantsView
               tenants={tenants}
               products={products}
               licenses={licenses}
               canManage={canAdminister}
-              onCreate={() => setShowTenant(true)}
-              onViewDetails={(t) => setDetailsTenant(t)}
+              onCreate={() => setSubpage({ type: "create-tenant" })}
+              onViewDetails={(t) => setSubpage({ type: "tenant-details", tenant: t })}
               onStatus={async (t, status) => {
                 await api(`/tenants/${t.id}/status`, {
                   method: "POST",
@@ -455,23 +667,58 @@ export default function App() {
             />
           )}
 
-          {view === "applications" && (
+          {subpage.type === "none" && view === "applications" && (
             <ApplicationsView
               products={products}
               licenses={licenses}
               clients={clients}
               canManage={canAdminister}
-              onCreate={() => setShowApp(true)}
-              onViewDetails={(p) => setDetailsProduct(p)}
-              onIssueLicense={() => setShowLicense(true)}
+              onCreate={() => setSubpage({ type: "create-application" })}
+              onViewDetails={(p) => setSubpage({ type: "application-details", product: p })}
+              onIssueLicense={(p) => setSubpage({ type: "create-license", defaultProduct: p })}
             />
           )}
 
-          {view === "users" && canAdminister && (
+          {subpage.type === "none" && view === "dealers" && (
+            <DealersView
+              dealers={dealers}
+              products={products}
+              canManage={canAdminister}
+              onCreate={() => setSubpage({ type: "create-dealer" })}
+              onViewDetails={(d) => setSubpage({ type: "dealer-details", dealer: d })}
+              onToggleStatus={async (d) => {
+                await api(`/dealers/${d.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ isActive: !d.isActive }),
+                });
+                done(`Dealer ${d.isActive ? "suspended" : "activated"}`);
+              }}
+            />
+          )}
+
+          {subpage.type === "none" && view === "api-keys" && (
+            <ApiKeysView
+              apiKeys={apiKeys}
+              canManage={true}
+              onCreate={() => setSubpage({ type: "create-api-key" })}
+              onViewDocs={() => setSubpage({ type: "api-docs" })}
+              onToggleStatus={async (k) => {
+                await api(`/api-keys/${k.id}/toggle`, { method: "POST" });
+                done(`API Key ${k.isActive ? "disabled" : "enabled"}`);
+              }}
+              onDelete={async (k) => {
+                if (!window.confirm(`Permanently revoke and delete API key "${k.name}"?`)) return;
+                await api(`/api-keys/${k.id}`, { method: "DELETE" });
+                done("API key revoked");
+              }}
+            />
+          )}
+
+          {subpage.type === "none" && view === "users" && canAdminister && (
             <UsersView
               users={users}
               currentUserId={session?.id ?? ""}
-              onCreate={() => setShowUser(true)}
+              onCreate={() => setSubpage({ type: "create-user" })}
               onToggle={async (user) => {
                 await api(`/users/${user.id}`, {
                   method: "PATCH",
@@ -487,158 +734,9 @@ export default function App() {
             />
           )}
 
-          {view === "audit" && <AuditView rows={audits} />}
+          {subpage.type === "none" && view === "audit" && <AuditView rows={audits} />}
         </div>
       </main>
-
-      {/* Operational Modals */}
-      {showTenant && (
-        <CreateTenant
-          onClose={() => setShowTenant(false)}
-          onCreated={() => {
-            setShowTenant(false);
-            done("Vendor / tenant created");
-          }}
-        />
-      )}
-
-      {showApp && (
-        <CreateApplication
-          tenants={tenants}
-          onClose={() => setShowApp(false)}
-          onCreated={() => {
-            setShowApp(false);
-            done("Application created");
-          }}
-        />
-      )}
-
-      {showUser && (
-        <CreateUser
-          tenants={tenants}
-          isSuperAdmin={session?.role === "SUPER_ADMIN"}
-          onClose={() => setShowUser(false)}
-          onCreated={() => {
-            setShowUser(false);
-            done("User created");
-          }}
-        />
-      )}
-
-      {showLicense && (
-        <CreateLicense
-          onClose={() => setShowLicense(false)}
-          onCreated={() => {
-            setShowLicense(false);
-            done("Cryptographic license generated");
-          }}
-        />
-      )}
-
-      {editLicense && (
-        <ReissueModules
-          license={editLicense}
-          onClose={() => setEditLicense(null)}
-          onDone={() => {
-            setEditLicense(null);
-            done("License updated and replacement key issued");
-          }}
-        />
-      )}
-
-      {banTarget && (
-        <BanClientModal
-          client={banTarget}
-          onClose={() => setBanTarget(null)}
-          onConfirm={async (reason) => {
-            await api(`/clients/${banTarget.clientId}/ban`, {
-              method: "POST",
-              body: JSON.stringify({ reason }),
-            });
-            setBanTarget(null);
-            done("Client installation banned");
-          }}
-        />
-      )}
-
-      {/* Deep Inspection Modals */}
-      {detailsLicense && (
-        <LicenseDetailsModal
-          license={detailsLicense}
-          onClose={() => setDetailsLicense(null)}
-          canManage={canAdminister}
-          onEditModules={(l) => {
-            setDetailsLicense(null);
-            setEditLicense(l);
-          }}
-          onStatus={async (id, status) => {
-            await api(`/licenses/${id}/status`, {
-              method: "POST",
-              body: JSON.stringify({ status }),
-            });
-            done(`License ${status.toLowerCase()}`);
-          }}
-          onDelete={async (l) => {
-            if (!window.confirm(`Delete license ${l.serial}?`)) return;
-            await api(`/licenses/${l.id}`, { method: "DELETE" });
-            done("License deleted");
-          }}
-        />
-      )}
-
-      {detailsProduct && (
-        <ApplicationDetailsModal
-          product={detailsProduct}
-          licenses={licenses}
-          clients={clients}
-          onClose={() => setDetailsProduct(null)}
-          onIssueLicense={() => {
-            setDetailsProduct(null);
-            setShowLicense(true);
-          }}
-        />
-      )}
-
-      {detailsTenant && (
-        <VendorDetailsModal
-          tenant={detailsTenant}
-          products={products}
-          licenses={licenses}
-          canManage={canAdminister}
-          onClose={() => setDetailsTenant(null)}
-          onStatus={async (t, status) => {
-            await api(`/tenants/${t.id}/status`, {
-              method: "POST",
-              body: JSON.stringify({ status }),
-            });
-            done(`Vendor ${status.toLowerCase()}`);
-          }}
-        />
-      )}
-
-      {detailsClient && (
-        <ClientDetailsModal
-          client={detailsClient}
-          canSupport={canSupport}
-          canManage={canAdminister}
-          onClose={() => setDetailsClient(null)}
-          onRevalidate={async (c) => {
-            await api(`/clients/${c.clientId}/revalidate`, {
-              method: "POST",
-            });
-            setToast("Signed revalidation challenge dispatched");
-          }}
-          onBan={async (c) => {
-            setDetailsClient(null);
-            if (c.state === "BANNED") {
-              await api(`/clients/${c.clientId}/unban`, { method: "POST" });
-              done("Client unbanned");
-            } else {
-              setBanTarget(c);
-            }
-          }}
-        />
-      )}
 
       {/* Feedback Toast */}
       {toast && (

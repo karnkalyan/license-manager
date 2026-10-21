@@ -36,11 +36,24 @@ export function ClientsView({
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
+  const [appFilter, setAppFilter] = useState("ALL");
+
+  const apps = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of clients) {
+      if (c.license?.product) {
+        map.set(c.license.product.publicId, c.license.product.name);
+      }
+    }
+    return Array.from(map.entries());
+  }, [clients]);
+
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
       if (statusFilter === "ONLINE" && !c.socketOnline) return false;
       if (statusFilter === "WAITING" && !c.provisioningOnline) return false;
       if (statusFilter === "BANNED" && c.state !== "BANNED") return false;
+      if (appFilter !== "ALL" && c.license?.product?.publicId !== appFilter) return false;
 
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -55,7 +68,7 @@ export function ClientsView({
       ].join(" ").toLowerCase();
       return haystack.includes(q);
     });
-  }, [clients, search, statusFilter]);
+  }, [clients, search, statusFilter, appFilter]);
 
   const copyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,6 +110,27 @@ export function ClientsView({
             </button>
           )}
         </div>
+
+        {apps.length > 0 && (
+          <div className="filter-dropdown-wrap">
+            <span className="control-label">Application:</span>
+            <select
+              value={appFilter}
+              onChange={(e) => {
+                setAppFilter(e.target.value);
+                setPage(1);
+              }}
+              className="corporate-select"
+            >
+              <option value="ALL">All Applications ({apps.length})</option>
+              {apps.map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="filter-tabs-strip inline-strip">
           <button

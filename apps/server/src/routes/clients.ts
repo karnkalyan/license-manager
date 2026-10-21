@@ -16,13 +16,18 @@ export const clientsRouter = Router();
 clientsRouter.use(requireAdmin);
 
 clientsRouter.get("/", async (req, res) => {
+  const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
   const clients = await prisma.activation.findMany({
-    where: req.admin!.tenantId ? { license: { product: { tenantId: req.admin!.tenantId } } } : undefined,
+    where: {
+      ...(req.admin!.tenantId ? { license: { product: { tenantId: req.admin!.tenantId } } } : {}),
+      ...(isDealer ? { license: { dealerId: req.admin!.id } } : {}),
+    },
     include: {
       license: {
         include: {
           product: { include: { tenant: true } },
           modules: { include: { module: true } },
+          dealer: { select: { id: true, username: true, dealerName: true } },
         },
       },
     },
@@ -40,11 +45,15 @@ clientsRouter.get("/", async (req, res) => {
 
 clientsRouter.post(
   "/:clientId/revalidate",
-  requireRoles("SUPER_ADMIN", "ADMIN", "SUPPORT"),
+  requireRoles("SUPER_ADMIN", "ADMIN", "SUPPORT", "DEALER", "FRANCHISE"),
   async (req, res) => {
     const clientId = req.params.clientId as string;
+    const isDealer = req.admin!.role === "DEALER" || req.admin!.role === "FRANCHISE";
     if (req.admin!.tenantId) {
       await prisma.activation.findFirstOrThrow({ where: { clientId, license: { product: { tenantId: req.admin!.tenantId } } } });
+    }
+    if (isDealer) {
+      await prisma.activation.findFirstOrThrow({ where: { clientId, license: { dealerId: req.admin!.id } } });
     }
     let delivered = await pushLicenseEvent(clientId, "REVALIDATE_NOW");
     let reissued = false;

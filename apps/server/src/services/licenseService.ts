@@ -44,6 +44,8 @@ export async function createLicense(input: {
   productId: string;
   moduleIds: string[];
   customerRef?: string;
+  customerTenant?: string;
+  dealerId?: string;
   hwid?: string;
   expiresAt?: Date | null;
   maxActivations?: number;
@@ -79,6 +81,8 @@ export async function createLicense(input: {
       id,
       serial: licSerial,
       customerRef: input.customerRef,
+      customerTenant: input.customerTenant,
+      dealerId: input.dealerId,
       productId: product.id,
       hwidHash,
       tokenHash,
@@ -93,6 +97,7 @@ export async function createLicense(input: {
       product: { include: { tenant: true } },
       modules: { include: { module: true } },
       activations: true,
+      dealer: { select: { id: true, username: true, dealerName: true } },
     },
   });
   return { ...record, jwtKey };
@@ -283,4 +288,70 @@ export async function validatePresentedLicense(
     modules: dbModules,
     entitlements: dbEntitlements,
   };
+}
+
+export async function extendLicenseDate(
+  licenseIdOrSerial: string,
+  newExpiresAt: Date,
+  customerRef?: string
+) {
+  const current = await prisma.license.findFirstOrThrow({
+    where: {
+      OR: [{ id: licenseIdOrSerial }, { serial: licenseIdOrSerial }],
+    },
+    include: {
+      product: { include: { tenant: true } },
+      modules: { include: { module: true } },
+      activations: true,
+      dealer: { select: { id: true, username: true, dealerName: true } },
+    },
+  });
+
+  const moduleCodes = current.modules.map((m) => m.module.code);
+  const entitlements = entitlementsFromMetadata(current.metadata, moduleCodes);
+  const entitlementVersion = current.entitlementVersion + 1;
+
+  const jwtKey = await signLicenseToken({
+    id: current.id,
+    serial: current.serial,
+    tenantPublicId: current.product.tenant.publicId,
+    productPublicId: current.product.publicId,
+    productCode: current.product.code,
+    moduleCodes,
+    entitlementVersion,
+    entitlements,
+    hwidHash: current.hwidHash ?? undefined,
+    validFrom: current.validFrom,
+    expiresAt: newExpiresAt,
+  });
+
+  const tokenHash = createHash("sha256").update(jwtKey).digest("hex");
+
+  const currentMeta =
+    current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+      ? (current.metadata as Record<string, unknown>)
+      : {};
+
+  const updated = await prisma.license.update({
+    where: { id: current.id },
+    data: {
+      expiresAt: newExpiresAt,
+      entitlementVersion,
+      tokenHash,
+      status: current.status === "EXPIRED" ? "ACTIVE" : current.status,
+      customerRef: customerRef ?? current.customerRef,
+      metadata: {
+        ...currentMeta,
+        lastExtendedAt: new Date().toISOString(),
+      } as any,
+    },
+    include: {
+      product: { include: { tenant: true } },
+      modules: { include: { module: true } },
+      activations: true,
+      dealer: { select: { id: true, username: true, dealerName: true } },
+    },
+  });
+
+  return { ...updated, jwtKey };
 }

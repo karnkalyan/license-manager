@@ -12,4 +12,5 @@ certs/**/*.pem
 secrets/*.txt
 kashtrix-streamops/
 *.log
+token.txt
 .DS_Store

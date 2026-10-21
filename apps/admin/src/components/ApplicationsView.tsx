@@ -7,7 +7,6 @@ import {
   KeyRound,
   Plus,
   Search,
-  Sliders,
   X,
 } from "lucide-react";
 import type { Activation, License, Product } from "../types";
@@ -32,6 +31,8 @@ export function ApplicationsView({
   const [search, setSearch] = useState("");
   const [vendorFilter, setVendorFilter] = useState("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   // Extract unique vendors for filter dropdown
   const vendors = useMemo(() => {
@@ -57,10 +58,15 @@ export function ApplicationsView({
         p.tenant?.name ?? "",
         p.tenant?.code ?? "",
         ...p.modules.map((m) => m.code),
-      ].join(" ").toLowerCase();
+      ]
+        .join(" ")
+        .toLowerCase();
       return haystack.includes(q);
     });
   }, [products, search, vendorFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  const paginated = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
   const copyId = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,7 +83,10 @@ export function ApplicationsView({
           <Search size={16} className="search-icon" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search applications by name, code, module, or vendor…"
           />
           {search && (
@@ -92,7 +101,10 @@ export function ApplicationsView({
             <span className="control-label">Vendor:</span>
             <select
               value={vendorFilter}
-              onChange={(e) => setVendorFilter(e.target.value)}
+              onChange={(e) => {
+                setVendorFilter(e.target.value);
+                setPage(1);
+              }}
               className="corporate-select"
             >
               <option value="ALL">All Vendors ({vendors.length})</option>
@@ -106,7 +118,7 @@ export function ApplicationsView({
         )}
 
         {canManage && (
-          <button className="btn primary" onClick={onCreate}>
+          <button className="btn primary glow-btn" onClick={onCreate}>
             <Plus size={16} />
             <span>Add Application</span>
           </button>
@@ -115,7 +127,7 @@ export function ApplicationsView({
 
       {/* Applications Grid */}
       <div className="application-cards-grid">
-        {filteredProducts.map((p) => {
+        {paginated.map((p) => {
           const appLicenses = licenses.filter((l) => l.product?.id === p.id);
           const activeLicenses = appLicenses.filter((l) => l.status === "ACTIVE").length;
           const appClients = clients.filter((c) => c.license?.product?.publicId === p.publicId);
@@ -125,7 +137,7 @@ export function ApplicationsView({
           return (
             <div
               key={p.id}
-              className="app-corporate-card"
+              className="app-corporate-card clickable-card"
               onClick={() => onViewDetails(p)}
             >
               <div className="app-card-header">
@@ -168,10 +180,7 @@ export function ApplicationsView({
                 </div>
                 <div className="chips">
                   {p.modules.slice(0, 6).map((m) => (
-                    <span
-                      className={`chip ${m.enabled ? "" : "disabled"}`}
-                      key={m.id}
-                    >
+                    <span className={`chip ${m.enabled ? "" : "disabled"}`} key={m.id}>
                       {m.code}
                     </span>
                   ))}
@@ -205,14 +214,8 @@ export function ApplicationsView({
               </div>
 
               {/* Card Footer Actions */}
-              <div
-                className="app-card-footer"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  className="btn action-btn wide-btn"
-                  onClick={() => onViewDetails(p)}
-                >
+              <div className="app-card-footer" onClick={(e) => e.stopPropagation()}>
+                <button className="btn action-btn wide-btn" onClick={() => onViewDetails(p)}>
                   <Eye size={14} /> View Specification
                 </button>
                 {canManage && (
@@ -232,9 +235,30 @@ export function ApplicationsView({
 
       {!filteredProducts.length && (
         <div className="empty-view">
-          <AppWindow size={32} className="empty-icon" />
+          <AppWindow size={36} className="empty-icon" />
           <h3>No applications found</h3>
-          <p>Try adjusting your search criteria or add a new application.</p>
+          <p>Try adjusting your search criteria or register a new application.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="corporate-pagination">
+          <span>
+            Showing {(page - 1) * pageSize + 1}–
+            {Math.min(page * pageSize, filteredProducts.length)} of {filteredProducts.length} applications
+          </span>
+          <div className="pagination-buttons">
+            <button className="btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </button>
+            <span className="page-indicator">
+              Page {page} of {totalPages}
+            </span>
+            <button className="btn" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

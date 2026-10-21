@@ -15,13 +15,17 @@ import { clientsRouter } from './routes/clients.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { auditRouter } from './routes/audit.js';
 import { usersRouter } from './routes/users.js';
+import { dealersRouter } from './routes/dealers.js';
+import { apiKeysRouter } from './routes/apiKeys.js';
+import { apiV1Router } from './routes/apiV1.js';
 import { startTcpServer } from './tcp/server.js';
 
 const app = express();
 app.set('trust proxy', config.TRUST_PROXY ? 1 : false);
 app.use(helmet());
-app.use(cors({ origin: config.ADMIN_ORIGIN, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] }));
+app.use(cors({ origin: true, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] }));
 app.use((req, res, next) => {
+  if (req.path.startsWith('/api/v1')) return next();
   if (['POST','PUT','PATCH','DELETE'].includes(req.method) && req.headers.origin && req.headers.origin !== config.ADMIN_ORIGIN) return res.status(403).json({ error: 'Origin rejected' });
   next();
 });
@@ -46,6 +50,9 @@ app.use('/api/clients', clientsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/dealers', dealersRouter);
+app.use('/api/api-keys', apiKeysRouter);
+app.use('/api/v1', apiV1Router);
 
 const adminDist = resolve(repoRoot, 'apps/admin/dist');
 if (config.NODE_ENV === 'production' && existsSync(adminDist)) {
