@@ -570,7 +570,11 @@ export default function App() {
           )}
 
           {subpage.type === "api-docs" && (
-            <ApiDocsPage onBack={() => setSubpage({ type: "none" })} />
+            <ApiDocsPage
+              onBack={() => setSubpage({ type: "none" })}
+              apiKeys={apiKeys}
+              licenses={licenses}
+            />
           )}
 
           {/* Main Views (Shown only when no subpage is active) */}
