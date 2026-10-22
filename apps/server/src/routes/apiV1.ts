@@ -1,7 +1,13 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import { prisma } from "../db.js";
-import { extendLicenseDate } from "../services/licenseService.js";
+import { AuditSeverity, LicenseStatus, ClientState } from "../generated/prisma/enums.js";
+import {
+  extendLicenseDate,
+  reissueCurrentLicense,
+  findActiveLicenseForInstallation,
+} from "../services/licenseService.js";
+import { provisioningRegistry } from "../tcp/registry.js";
 import { pushLicenseEvent, deliverProvisionedLicense } from "../tcp/server.js";
 import { registry } from "../tcp/registry.js";
 import { audit } from "../services/audit.js";
@@ -463,4 +469,324 @@ apiV1Router.post("/licenses/:serial/extend", async (req, res) => {
     console.error("License extension error:", err);
     res.status(500).json({ error: err instanceof Error ? err.message : "Failed to extend license" });
   }
+});
+
+
+// POST /api/v1/licenses/:serial/status - Update license status (ACTIVE, SUSPENDED, REVOKED)
+apiV1Router.post("/licenses/:serial/status", async (req, res) => {
+  const serial = req.params.serial as string;
+  const apiKey = req.apiKey!;
+
+  if (apiKey.role === "READ_ONLY") {
+    return res.status(403).json({ error: "This API key has READ_ONLY permissions. Status mutation not permitted." });
+  }
+
+  const parsed = z
+    .object({
+      status: z.enum(["ACTIVE", "SUSPENDED", "REVOKED"]),
+      reason: z.string().max(500).optional(),
+    })
+    .safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid status. Must be ACTIVE, SUSPENDED, or REVOKED", details: parsed.error.flatten() });
+  }
+
+  const license = await prisma.license.findFirst({
+    where: {
+      serial,
+      ...(apiKey.dealerId ? { dealerId: apiKey.dealerId } : {}),
+    },
+    include: {
+      product: { include: { tenant: true } },
+      activations: true,
+      modules: { include: { module: true } },
+    },
+  });
+
+  if (!license) {
+    return res.status(404).json({ error: "License not found or access denied" });
+  }
+
+  const targetStatus = parsed.data.status as LicenseStatus;
+  const reason = parsed.data.reason || (targetStatus === "REVOKED" ? "Revoked via API" : targetStatus === "ACTIVE" ? "Restored via API" : "Suspended via API");
+
+  const updated = await prisma.license.update({
+    where: { id: license.id },
+    data: {
+      status: targetStatus,
+      revokedAt: targetStatus === "REVOKED" ? new Date() : null,
+      revokeReason: targetStatus === "ACTIVE" ? null : reason,
+    },
+    include: {
+      product: { include: { tenant: true } },
+      activations: true,
+      modules: { include: { module: true } },
+    },
+  });
+
+  if (targetStatus === "ACTIVE") {
+    await Promise.all(
+      updated.activations.map(async (a) => {
+        await pushLicenseEvent(a.clientId, "LICENSE_RESTORED", reason);
+        await pushLicenseEvent(a.clientId, "REVALIDATE_NOW", reason);
+      })
+    );
+
+    const waitingActivations = updated.activations.filter((a) => provisioningRegistry.get(a.clientId));
+    const anyWaiting = waitingActivations.length > 0 || provisioningRegistry.list().some(
+      (w) => w.tenantPublicId === updated.product.tenant.publicId && w.productPublicId === updated.product.publicId
+    );
+
+    if (anyWaiting) {
+      try {
+        const reissued = await reissueCurrentLicense(updated.id);
+        for (const a of waitingActivations) {
+          const waiting = provisioningRegistry.get(a.clientId);
+          if (waiting) {
+            deliverProvisionedLicense(
+              {
+                clientId: a.clientId,
+                tenantId: waiting.tenantPublicId,
+                applicationId: waiting.productPublicId,
+                hwid: waiting.hwid,
+              },
+              reissued.jwtKey
+            );
+          }
+        }
+      } catch (e) {
+        console.error("Reissue on restore error:", e);
+      }
+    }
+  } else {
+    const event = targetStatus === "SUSPENDED" ? "LICENSE_SUSPENDED" : "LICENSE_REVOKED";
+    await Promise.all(
+      updated.activations.map(async (a) => {
+        const live = registry.get(a.clientId);
+        const delivered = await pushLicenseEvent(a.clientId, event, reason);
+        if (live) {
+          setTimeout(() => {
+            if (!live.socket.destroyed) {
+              live.socket.end();
+              setTimeout(() => live.socket.destroy(), 500);
+            }
+          }, 500);
+        }
+        return delivered;
+      })
+    );
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      action: `LICENSE_${targetStatus}_VIA_API`,
+      entityType: "License",
+      entityId: updated.id,
+      severity: targetStatus === "ACTIVE" ? AuditSeverity.INFO : AuditSeverity.CRITICAL,
+      details: {
+        serial: updated.serial,
+        apiKeyName: apiKey.name,
+        newStatus: targetStatus,
+        reason,
+      },
+    },
+  });
+
+  res.json({
+    ok: true,
+    serial: updated.serial,
+    status: updated.status,
+    revokeReason: updated.revokeReason,
+    revokedAt: updated.revokedAt?.toISOString() || null,
+    message: `License status successfully updated to ${targetStatus}`,
+  });
+});
+
+// POST /api/v1/licenses/:serial/revoke - Revoke license convenience endpoint
+apiV1Router.post("/licenses/:serial/revoke", async (req, res) => {
+  req.body = { ...req.body, status: "REVOKED" };
+  const serial = req.params.serial as string;
+  const apiKey = req.apiKey!;
+
+  if (apiKey.role === "READ_ONLY") {
+    return res.status(403).json({ error: "This API key has READ_ONLY permissions. Revocation not permitted." });
+  }
+
+  const license = await prisma.license.findFirst({
+    where: { serial, ...(apiKey.dealerId ? { dealerId: apiKey.dealerId } : {}) },
+    include: { product: { include: { tenant: true } }, activations: true },
+  });
+
+  if (!license) return res.status(404).json({ error: "License not found or access denied" });
+
+  const reason = (req.body && req.body.reason) || "Revoked via API";
+  const updated = await prisma.license.update({
+    where: { id: license.id },
+    data: { status: "REVOKED", revokedAt: new Date(), revokeReason: reason },
+  });
+
+  await Promise.all(
+    license.activations.map(async (a) => {
+      const live = registry.get(a.clientId);
+      const delivered = await pushLicenseEvent(a.clientId, "LICENSE_REVOKED", reason);
+      if (live) {
+        setTimeout(() => {
+          if (!live.socket.destroyed) {
+            live.socket.end();
+            setTimeout(() => live.socket.destroy(), 500);
+          }
+        }, 500);
+      }
+      return delivered;
+    })
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      action: "LICENSE_REVOKED_VIA_API",
+      entityType: "License",
+      entityId: updated.id,
+      severity: AuditSeverity.CRITICAL,
+      details: { serial: updated.serial, apiKeyName: apiKey.name, reason },
+    },
+  });
+
+  res.json({ ok: true, serial: updated.serial, status: "REVOKED", revokeReason: reason });
+});
+
+// POST /api/v1/licenses/:serial/restore - Restore license convenience endpoint
+apiV1Router.post("/licenses/:serial/restore", async (req, res) => {
+  const serial = req.params.serial as string;
+  const apiKey = req.apiKey!;
+
+  if (apiKey.role === "READ_ONLY") {
+    return res.status(403).json({ error: "This API key has READ_ONLY permissions. Restoration not permitted." });
+  }
+
+  const license = await prisma.license.findFirst({
+    where: { serial, ...(apiKey.dealerId ? { dealerId: apiKey.dealerId } : {}) },
+    include: { product: { include: { tenant: true } }, activations: true },
+  });
+
+  if (!license) return res.status(404).json({ error: "License not found or access denied" });
+
+  const reason = (req.body && req.body.reason) || "Restored via API";
+  const updated = await prisma.license.update({
+    where: { id: license.id },
+    data: { status: "ACTIVE", revokedAt: null, revokeReason: null },
+  });
+
+  await Promise.all(
+    license.activations.map(async (a) => {
+      await pushLicenseEvent(a.clientId, "LICENSE_RESTORED", reason);
+      await pushLicenseEvent(a.clientId, "REVALIDATE_NOW", reason);
+    })
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      action: "LICENSE_RESTORED_VIA_API",
+      entityType: "License",
+      entityId: updated.id,
+      severity: AuditSeverity.INFO,
+      details: { serial: updated.serial, apiKeyName: apiKey.name, reason },
+    },
+  });
+
+  res.json({ ok: true, serial: updated.serial, status: "ACTIVE", message: "License restored successfully" });
+});
+
+// POST /api/v1/clients/:clientId/ban - Ban a specific client activation
+apiV1Router.post("/clients/:clientId/ban", async (req, res) => {
+  const clientId = req.params.clientId as string;
+  const apiKey = req.apiKey!;
+
+  if (apiKey.role === "READ_ONLY") {
+    return res.status(403).json({ error: "This API key has READ_ONLY permissions. Mutation not permitted." });
+  }
+
+  const parsed = z
+    .object({ reason: z.string().min(2).max(500).default("Banned via API") })
+    .safeParse(req.body || {});
+
+  const reason = parsed.success ? parsed.data.reason : "Banned via API";
+
+  const activation = await prisma.activation.findFirst({
+    where: {
+      clientId,
+      ...(apiKey.dealerId ? { license: { dealerId: apiKey.dealerId } } : {}),
+    },
+  });
+
+  if (!activation) {
+    return res.status(404).json({ error: "Client activation not found or access denied" });
+  }
+
+  await prisma.activation.update({
+    where: { id: activation.id },
+    data: {
+      state: ClientState.BANNED,
+      bannedAt: new Date(),
+      banReason: reason,
+    },
+  });
+
+  const live = registry.get(clientId);
+  const delivered = await pushLicenseEvent(clientId, "CLIENT_BANNED", reason);
+  if (live) setTimeout(() => live.socket.destroy(), 250);
+
+  await prisma.auditLog.create({
+    data: {
+      action: "CLIENT_BANNED_VIA_API",
+      entityType: "Activation",
+      entityId: activation.id,
+      severity: AuditSeverity.CRITICAL,
+      details: { clientId, reason, apiKeyName: apiKey.name, delivered },
+    },
+  });
+
+  res.json({ ok: true, clientId, state: "BANNED", banReason: reason, delivered });
+});
+
+// POST /api/v1/clients/:clientId/unban - Unban a client activation
+apiV1Router.post("/clients/:clientId/unban", async (req, res) => {
+  const clientId = req.params.clientId as string;
+  const apiKey = req.apiKey!;
+
+  if (apiKey.role === "READ_ONLY") {
+    return res.status(403).json({ error: "This API key has READ_ONLY permissions. Mutation not permitted." });
+  }
+
+  const activation = await prisma.activation.findFirst({
+    where: {
+      clientId,
+      ...(apiKey.dealerId ? { license: { dealerId: apiKey.dealerId } } : {}),
+    },
+  });
+
+  if (!activation) {
+    return res.status(404).json({ error: "Client activation not found or access denied" });
+  }
+
+  await prisma.activation.update({
+    where: { id: activation.id },
+    data: {
+      state: ClientState.OFFLINE,
+      bannedAt: null,
+      banReason: null,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: "CLIENT_UNBANNED_VIA_API",
+      entityType: "Activation",
+      entityId: activation.id,
+      severity: AuditSeverity.INFO,
+      details: { clientId, apiKeyName: apiKey.name },
+    },
+  });
+
+  res.json({ ok: true, clientId, state: "OFFLINE", message: "Client successfully unbanned" });
 });

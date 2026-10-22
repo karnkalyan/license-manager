@@ -255,19 +255,27 @@ export function DashboardView({
                 <div className="client-glyph">
                   <Cpu size={16} />
                 </div>
-                <div className="grow">
-                  <strong>
-                    {c.license?.product?.tenant?.name} · {c.license?.product?.name}
-                  </strong>
-                  <span className="mono">{c.clientId}</span>
+                <div className="client-info-col">
+                  <div className="client-app-name">
+                    <strong>{c.license?.product?.tenant?.name || "Vendor"}</strong>
+                    <span className="app-dot">·</span>
+                    <span>{c.license?.product?.name || "Application"}</span>
+                  </div>
+                  <div className="client-id-row">
+                    <span className="client-id-mono mono" title={c.clientId}>{c.clientId}</span>
+                    {c.license?.serial && (
+                      <span className="client-serial-tag mono">{c.license.serial}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="client-status-col">
                   <span
-                    className={`badge ${c.socketOnline ? "online" : c.state.toLowerCase()}`}
+                    className={`status-pill ${c.socketOnline ? "online" : "offline"}`}
                   >
-                    {c.socketOnline ? "ONLINE" : c.state}
+                    <span className={`status-dot ${c.socketOnline ? "dot-online" : "dot-offline"}`} />
+                    {c.socketOnline ? "ONLINE" : (c.state || "OFFLINE")}
                   </span>
-                  <small className="muted">{c.platform || "Workstation"}</small>
+                  <span className="platform-tag">{c.platform || "Workstation"}</span>
                 </div>
               </div>
             ))}
@@ -294,22 +302,25 @@ export function DashboardView({
           <div className="audit-compact-list">
             {audits.slice(0, 6).map((a) => (
               <div key={String(a.id)} className="audit-compact-item">
+                <div className="audit-glyph">
+                  <ShieldCheck size={16} />
+                </div>
                 <div className="audit-event-info">
-                  <strong>{a.action.replaceAll("_", " ")}</strong>
-                  <span>
-                    by {a.actor?.username || "System"} on {a.entityType}
-                  </span>
+                  <div className="audit-action-title">{a.action.replaceAll("_", " ")}</div>
+                  <div className="audit-actor-meta">
+                    by <strong>{a.actor?.username || "System"}</strong> on <span className="entity-tag">{a.entityType}</span>
+                  </div>
                 </div>
                 <div className="audit-event-meta">
-                  <span className={`badge ${a.severity.toLowerCase()}`}>
+                  <span className={`severity-badge ${a.severity.toLowerCase()}`}>
                     {a.severity}
                   </span>
-                  <small className="muted">
+                  <span className="audit-time">
                     {new Date(a.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                  </small>
+                  </span>
                 </div>
               </div>
             ))}

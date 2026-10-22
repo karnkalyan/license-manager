@@ -275,3 +275,31 @@ curl -X POST "http://localhost:8081/api/v1/licenses/LIC-KTX94812-7F3A/extend" \
   "message": "License successfully extended until 2027-04-01T00:00:00.000Z"
 }
 ```
+
+
+## External API (v1 with API Key)
+
+Base URL: `https://license.simulcast.com.np/api/v1`
+Authentication Header: `X-API-Key: KTX_...` or `Authorization: Bearer KTX_...`
+
+### Status & Health
+- `GET /status`: Check API key validity, remaining days, and permission role.
+
+### License Management
+- `GET /licenses`: Retrieve complete license records including vendor namespaces, application details, customer info, assigned modules, custom entitlements, and client activations.
+  - Query parameters: `?q=...`, `?status=ACTIVE|EXPIRED|REVOKED|SUSPENDED`, `?application=...`
+- `GET /licenses/:serial`: Inspect details of a specific license by serial number.
+- `POST /licenses/:serial/extend`: Extend expiration date.
+  - Body: `{ "days": 365, "reason": "Renewal", "customerRef": "optional" }` or `{ "expiresAt": "2028-01-01T00:00:00.000Z" }`
+- `POST /licenses/:serial/status`: Update license status (`ACTIVE`, `SUSPENDED`, `REVOKED`).
+  - Body: `{ "status": "REVOKED", "reason": "Contract terminated" }`
+- `POST /licenses/:serial/revoke`: Revoke a license and terminate all active client socket connections.
+  - Body: `{ "reason": "Revoked via admin action" }`
+- `POST /licenses/:serial/restore`: Restore a revoked or suspended license to `ACTIVE`.
+  - Body: `{ "reason": "Restored by admin" }`
+
+### Client Installation Controls
+- `POST /clients/:clientId/ban`: Ban an installation by client UUID, sending immediate termination push and closing live TCP sockets.
+  - Body: `{ "reason": "Unauthorized hardware" }`
+- `POST /clients/:clientId/unban`: Unban an installation to allow reconnection.
+  - Body: `{}`
